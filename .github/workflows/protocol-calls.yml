@@ -1,0 +1,37 @@
+name: "Protocol Calls"
+
+on:
+  workflow_dispatch:
+    inputs:
+      CALL_TITLE:
+        description: "Title of the Zoom meeting"
+        required: true
+      START_TIME:
+        description: "Start time in ISO 8601 (UTC)"
+        required: true
+
+jobs:
+  create_zoom_call:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+      
+      - name: Create Zoom Meeting
+        run: |
+          python -m acdbot.cli create-zoom \
+            --title "${{ github.event.inputs.CALL_TITLE }}" \
+            --start-time "${{ github.event.inputs.START_TIME }}"
+        env:
+          ZOOM_JWT: ${{ secrets.ZOOM_JWT }}
+          ZOOM_USER_ID: ${{ secrets.ZOOM_USER_ID }}
