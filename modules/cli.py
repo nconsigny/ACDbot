@@ -1,5 +1,9 @@
 import click
 from modules import zoom, discourse, telegram, calendar, transcript
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 @click.group()
 def cli():
