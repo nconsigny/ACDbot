@@ -2,6 +2,11 @@ import os
 import json
 import requests
 
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
 def create_topic(title: str, body: str, category_id=63):
     """
     Creates a new Discourse topic.
