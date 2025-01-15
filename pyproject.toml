@@ -9,7 +9,7 @@ description = "ACD Bot to manage Zoom, Discourse, Telegram, etc."
 authors = [
   { name="Nicolas Consigny", email="nicolas.consigny@ethereum.org" }
 ]
-license = "GNU GENERAL PUBLIC LICENSE Version 3"
+license = { file = "LICENSE" }
 requires-python = ">=3.8"
 dependencies = [
   "requests",
