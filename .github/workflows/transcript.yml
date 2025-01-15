@@ -25,6 +25,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
+          pip install PyGithub>=1.55.1
           pip install -e .
 
       - name: Publish Transcript to Discourse
