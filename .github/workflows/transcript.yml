@@ -36,7 +36,9 @@ jobs:
             --category-id "${{ github.event.inputs.DISCOURSE_CATEGORY }}"
         env:
           # Zoom
-          ZOOM_JWT: ${{ secrets.ZOOM_JWT }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
 
           # Discourse
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}

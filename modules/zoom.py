@@ -1,22 +1,62 @@
 import os
 import json
 import requests
+import logging
+from datetime import datetime, timedelta
+from oauthlib.oauth2 import BackendApplicationClient
+from requests_oauthlib import OAuth2Session
 
-def create_zoom_meeting(title: str, start_time: str) -> str:
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+def get_zoom_access_token():
+    try:
+        client_id = os.environ["ZOOM_CLIENT_ID"]
+        client_secret = os.environ["ZOOM_CLIENT_SECRET"]
+    except KeyError as e:
+        logger.error(f"Missing environment variable: {e}")
+        raise
+
+    token_url = "https://zoom.us/oauth/token"
+
+    client = BackendApplicationClient(client_id=client_id)
+    oauth = OAuth2Session(client=client)
+
+    try:
+        token = oauth.fetch_token(
+            token_url=token_url,
+            client_id=client_id,
+            client_secret=client_secret,
+            include_client_id=True
+        )
+        logger.info("Successfully obtained Zoom access token.")
+        return token["access_token"]
+    except Exception as e:
+        logger.error(f"Error obtaining Zoom access token: {e}")
+        raise
+
+def create_zoom_meeting(title: str, start_time: str, duration_minutes: int = 60) -> str:
     """
     Creates a Zoom meeting and returns the join URL.
     Expects environment variables:
-      - ZOOM_JWT
-      - ZOOM_USER_ID
+      - ZOOM_CLIENT_ID
+      - ZOOM_CLIENT_SECRET
+      - ZOOM_ACCOUNT_ID
+
+    :param title: Title of the Zoom meeting
+    :param start_time: Start time in ISO 8601 format (UTC)
+    :param duration_minutes: Duration of meeting in minutes (default 60)
+    :return: URL to join the Zoom meeting
     """
-    zoom_jwt = os.environ["ZOOM_JWT"]            # fails if not found
-    zoom_user_id = os.environ["ZOOM_USER_ID"]    # fails if not found
+    access_token = get_zoom_access_token()
+    zoom_account_id = os.environ["ZOOM_ACCOUNT_ID"]  # Replace ZOOM_USER_ID with ZOOM_ACCOUNT_ID
 
     payload = {
         "topic": title,
-        "type": 2,  # scheduled meeting
+        "type": 2,  # Scheduled meeting
         "start_time": start_time,
-        "duration": 60,
+        "duration": duration_minutes,
         "settings": {
             "host_video": True,
             "participant_video": True,
@@ -24,9 +64,9 @@ def create_zoom_meeting(title: str, start_time: str) -> str:
         }
     }
 
-    url = f"https://api.zoom.us/v2/users/{zoom_user_id}/meetings"
+    url = f"https://api.zoom.us/v2/users/{zoom_account_id}/meetings"
     headers = {
-        "Authorization": f"Bearer {zoom_jwt}",
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
 
@@ -40,20 +80,22 @@ def fetch_zoom_transcript(meeting_id: str) -> str:
     """
     Fetches the transcript text for a Zoom meeting's cloud recording.
 
-    1) Calls Zoom's /meetings/{meeting_id}/recordings endpoint
-    2) Finds a recording file with file_type="TRANSCRIPT"
-    3) Downloads the transcript text
-    4) Returns that text
+    Steps:
+    1) Retrieve recording files via Zoom's API.
+    2) Find the transcript file.
+    3) Download the transcript.
+    4) Return the transcript text.
 
-    Expects environment variable:
-      - ZOOM_JWT (or valid Oauth token)
+    Expects environment variables:
+      - ZOOM_CLIENT_ID
+      - ZOOM_CLIENT_SECRET
     """
-    zoom_jwt = os.environ["ZOOM_JWT"]  # Make sure your JWT or OAuth token can access recordings
+    access_token = get_zoom_access_token()
 
     # Step 1: Get the recording files
     recordings_url = f"https://api.zoom.us/v2/meetings/{meeting_id}/recordings"
     headers = {
-        "Authorization": f"Bearer {zoom_jwt}",
+        "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json",
     }
 
@@ -71,13 +113,10 @@ def fetch_zoom_transcript(meeting_id: str) -> str:
     if not transcript_url:
         raise ValueError(f"No transcript file found for meeting {meeting_id}")
 
-    # Step 3: Download the transcript from the transcript_url
-    # Depending on Zoom settings, we may need to pass the same Bearer token or add ?access_token=...
-    # For many accounts, you can do the Authorization header again:
-    transcript_resp = requests.get(transcript_url, headers=headers)
+    # Step 3: Download the transcript
+    # Append the access_token as a query parameter
+    transcript_resp = requests.get(f"{transcript_url}?access_token={access_token}")
     transcript_resp.raise_for_status()
 
-    # The transcript text is typically returned as plain text (VTT or similar)
     transcript_text = transcript_resp.text
-
     return transcript_text

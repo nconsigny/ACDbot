@@ -23,8 +23,11 @@ def create_zoom(title, start_time):
     Example usage:
         python -m modules.cli create-zoom --title 'My Meeting' --start-time '2025-01-01T13:00:00Z'
     """
-    zoom_link = zoom.create_zoom_meeting(title, start_time)
-    click.echo(f"Zoom Meeting Created: {zoom_link}")
+    try:
+        zoom_link = zoom.create_zoom_meeting(title, start_time)
+        click.echo(f"Zoom Meeting Created: {zoom_link}")
+    except Exception as e:
+        click.echo(f"Error creating Zoom meeting: {e}", err=True)
 
 @cli.command()
 @click.option("--title", required=True, help="Title of the Discourse topic")
