@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=66.1.1", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -20,5 +20,6 @@ dependencies = [
     "google-api-python-client>=2.0.0",
     "google-auth>=1.30.0",
     "click>=7.1.2",
-    "requests-oauthlib"
+    "requests-oauthlib",
+    "PyGithub>=1.55.1"
 ]
