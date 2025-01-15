@@ -17,4 +17,5 @@ dependencies = [
   "google-api-python-client",
   "google-auth",
   "click",  # or remove if using argparse
+  "requests-oauthlib"  # Added for OAuth support
 ]

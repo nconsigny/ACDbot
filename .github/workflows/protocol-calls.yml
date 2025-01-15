@@ -29,9 +29,10 @@ jobs:
       
       - name: Create Zoom Meeting
         run: |
-          python -m acdbot.cli create-zoom \
+          python -m modules.cli create-zoom \
             --title "${{ github.event.inputs.CALL_TITLE }}" \
             --start-time "${{ github.event.inputs.START_TIME }}"
         env:
-          ZOOM_JWT: ${{ secrets.ZOOM_JWT }}
-          ZOOM_USER_ID: ${{ secrets.ZOOM_USER_ID }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
