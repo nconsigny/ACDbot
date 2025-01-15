@@ -1,6 +1,4 @@
 name: "Zoom Transcript Upload"
-# Trigger: workflow_dispatch so you can manually trigger it 
-# from the GitHub Actions tab and provide MEETING_ID.
 on:
   workflow_dispatch:
     inputs:
@@ -35,12 +33,9 @@ jobs:
             --meeting-id "${{ github.event.inputs.MEETING_ID }}" \
             --category-id "${{ github.event.inputs.DISCOURSE_CATEGORY }}"
         env:
-          # Zoom
           ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
           ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
           ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
-
-          # Discourse
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
           DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
           DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}

@@ -1,11 +1,8 @@
 import os
 import requests
 from dotenv import load_dotenv
-
-# Load environment variables from .env if present
 load_dotenv()
 
-# Now you can safely use os.environ.get("ZOOM_CLIENT_ID"), etc.
 ZOOM_CLIENT_ID = os.environ.get("ZOOM_CLIENT_ID")
 ZOOM_CLIENT_SECRET = os.environ.get("ZOOM_CLIENT_SECRET")
 ZOOM_ACCOUNT_ID = os.environ.get("ZOOM_ACCOUNT_ID")

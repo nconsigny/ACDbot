@@ -1,0 +1,47 @@
+name: "Automate Zoom & Discourse from Issues"
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  handle_new_issue:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.issue.user.login == 'poojaranjan' ||
+      github.event.issue.user.login == 'adietrichs' ||
+      github.event.issue.user.login == 'CarlBeek' ||
+      github.event.issue.user.login == 'timbeiko' ||
+      github.event.issue.user.login == 'nconsigny' ||
+      github.event.issue.user.login == 'hwwhww' ||
+      github.event.issue.user.login == 'mathhhewkeil' ||
+      github.event.issue.user.login == 'ralexstokes'
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.9"
+      
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e .
+      
+      - name: Handle new issue
+        run: |
+          python scripts/handle_issue.py \
+              --issue_number "${{ github.event.issue.number }}" \
+              --repo "${{ github.repository }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+          DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
+          DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
+          DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
+          #TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          #TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }} 
