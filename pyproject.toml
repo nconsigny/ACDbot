@@ -3,19 +3,22 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "acdbot"
-version = "0.1.0"
-description = "ACD Bot to manage Zoom, Discourse, Telegram, etc."
+name = "ACDbot"
+version = "1.0.0"
+description = "A bot for handling issues."
 authors = [
-  { name="Nicolas Consigny", email="nicolas.consigny@ethereum.org" }
+    { name = "Nicolas Consigny", email = "nicolas.consigny@ethereum.org" }
 ]
+readme = "README.md"
 license = { file = "LICENSE" }
-requires-python = ">=3.8"
+keywords = ["github-actions", "automation", "zoom", "discourse"]
+
+# Dependencies
 dependencies = [
-  "requests",
-  "python-dateutil",
-  "google-api-python-client",
-  "google-auth",
-  "click",  # or remove if using argparse
-  "requests-oauthlib"  # Added for OAuth support
+    "requests>=2.25.1",
+    "python-dateutil>=2.8.1",
+    "google-api-python-client>=2.0.0",
+    "google-auth>=1.30.0",
+    "click>=7.1.2",
+    "requests-oauthlib"
 ]
