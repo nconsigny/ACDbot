@@ -28,11 +28,21 @@ jobs:
       - name: Upgrade pip, setuptools, and wheel
         run: |
           pip install --upgrade pip setuptools wheel
-      
+
+      - name: Install PyGithub Explicitly
+        run: |
+          pip install PyGithub>=1.55.1
+
       - name: Install dependencies
         run: |
           pip install -e .
       
+      - name: Verify Installed Packages
+        run: |
+          pip list
+
+     
+
       - name: Handle new issue
         run: |
           python scripts/handle_issue.py \
