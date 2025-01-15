@@ -43,4 +43,4 @@ jobs:
           # Discourse
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
           DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
-          DISCOURSE_BASE_URL: ${{ variables.DISCOURSE_BASE_URL }}
+          DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
