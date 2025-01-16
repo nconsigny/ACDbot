@@ -1,7 +1,5 @@
 import os
 import requests
-from dotenv import load_dotenv
-load_dotenv()
 
 ZOOM_CLIENT_ID = os.environ.get("ZOOM_CLIENT_ID")
 ZOOM_CLIENT_SECRET = os.environ.get("ZOOM_CLIENT_SECRET")

@@ -2,10 +2,7 @@ import os
 import json
 import requests
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
 
-# Load environment variables from .env file
-load_dotenv()
 
 def create_event(summary: str, start_dt: datetime, duration_minutes: int, calendar_id: str, description=""):
     """
