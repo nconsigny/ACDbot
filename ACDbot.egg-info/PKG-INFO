@@ -688,6 +688,7 @@ Requires-Dist: google-auth>=1.30.0
 Requires-Dist: click>=7.1.2
 Requires-Dist: requests-oauthlib
 Requires-Dist: PyGithub>=1.55.1
+Requires-Dist: python-dotenv>=0.20.0
 
 # ACDbot
 Bot for Ethereum protocol calls

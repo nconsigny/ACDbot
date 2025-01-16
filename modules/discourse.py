@@ -22,7 +22,8 @@ def create_topic(title: str, body: str, category_id=63):
     payload = {
         "title": title,
         "raw": body,
-        "category": category_id
+        "category": category_id,
+        "archetype": "regular"
     }
 
     resp = requests.post(
@@ -34,6 +35,8 @@ def create_topic(title: str, body: str, category_id=63):
         },
         data=json.dumps(payload),
     )
-    resp.raise_for_status()
+    if not resp.ok:
+        print(resp.text)  # Log the response content for debugging
+        resp.raise_for_status()
 
     return resp.json()
