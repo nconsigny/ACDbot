@@ -21,5 +21,6 @@ dependencies = [
     "google-auth>=1.30.0",
     "click>=7.1.2",
     "requests-oauthlib",
-    "PyGithub>=1.55.1"
+    "PyGithub>=1.55.1",
+    "python-dotenv>=0.20.0"
 ]
