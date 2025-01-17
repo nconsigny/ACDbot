@@ -31,7 +31,7 @@ def handle_github_issue(issue_number: int, repo_name: str):
     # 4. (Optional) Create Zoom Meeting
     try:
         start_time, duration = parse_issue_for_time(issue_body)
-        zoom_link = zoom.create_zoom_meeting(
+        zoom_link = zoom.create_meeting(
             title=f"Issue {issue.number}: {issue_title}",
             start_time=start_time,
             duration_minutes=duration

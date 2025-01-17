@@ -1,4 +1,5 @@
 import click
+import zoom
 
 @click.group()
 def cli():
@@ -16,14 +17,17 @@ def cli():
 @cli.command()
 @click.option("--title", required=True, help="Title of the Zoom meeting")
 @click.option("--start-time", required=True, help="Start time in ISO 8601 format (UTC)")
-def create_zoom(title, start_time):
+@click.option("--duration", required=False, help="Meeting duration, default 60 min")
+
+def create_zoom(title, start_time, duration):
     """
     Create a Zoom meeting and prints the join URL.
     Example usage:
         python -m modules.cli create-zoom --title 'My Meeting' --start-time '2025-01-01T13:00:00Z'
     """
     try:
-        zoom_link = zoom.create_zoom_meeting(title, start_time)
+        duration = duration if 'duration' in locals() else 60
+        zoom_link = zoom.create_meeting(title, start_time, duration)
         click.echo(f"Zoom Meeting Created: {zoom_link}")
     except Exception as e:
         click.echo(f"Error creating Zoom meeting: {e}", err=True)
@@ -67,7 +71,7 @@ def create_calendar_event(summary, start, duration, calendar_id):
     from datetime import datetime
     start_dt = datetime.fromisoformat(start.replace("Z", ""))  # naive parse
 
-    link = calendar.create_event(
+    link = gcal.create_event(
         summary=summary,
         start_dt=start_dt,
         duration_minutes=duration,

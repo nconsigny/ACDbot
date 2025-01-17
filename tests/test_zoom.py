@@ -15,4 +15,4 @@ def test_create_zoom_meeting(monkeypatch):
     # you'd verify if it raises or returns the correct data structure
     # For demonstration, assume it returns a dummy link:
     with pytest.raises(Exception):
-        create_zoom_meeting("Test Meeting", "2025-01-01T00:00:00Z")
+        create_meeting("Test Meeting", "2025-01-01T00:00:00Z")
