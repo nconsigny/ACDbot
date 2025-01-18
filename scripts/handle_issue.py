@@ -1,8 +1,7 @@
 import os
 import sys
 import argparse
-import discourse
-import zoom
+from ..modules import discourse, zoom
 from github import Github
 
 # Import your custom modules

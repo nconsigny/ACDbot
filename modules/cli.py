@@ -1,5 +1,5 @@
 import click
-import zoom
+from . import zoom, discourse, telegram, gcal, transcript
 
 @click.group()
 def cli():
