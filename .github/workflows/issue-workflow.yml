@@ -2,7 +2,7 @@ name: "Automate Zoom & Discourse from Issues"
 
 on:
   issues:
-    types: [opened]
+    types: [opened, edited]
 
 jobs:
   handle_new_issue:

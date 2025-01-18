@@ -28,6 +28,7 @@ def create_meeting(topic, start_time, duration):
     
     if resp.status_code!=201:
         print("Unable to generate meeting link")
+        resp.raise_for_status()
     response_data = resp.json()
     
     content = {
@@ -40,7 +41,7 @@ def create_meeting(topic, start_time, duration):
                 "status":1
     }
     print(content)
-    return response_data["join_url"]
+    return response_data["join_url"], response_data["id"]
 
 def get_access_token():
     data = {
@@ -54,6 +55,7 @@ def get_access_token():
     
     if response.status_code!=200:
         print("Unable to get access token")
+        response.raise_for_status()
     else:
         response_data = response.json()
         return response_data["access_token"]
