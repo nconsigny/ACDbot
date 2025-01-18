@@ -7,9 +7,9 @@ ACDbot.egg-info/dependency_links.txt
 ACDbot.egg-info/requires.txt
 ACDbot.egg-info/top_level.txt
 modules/__init__.py
-modules/gcal.py
 modules/cli.py
 modules/discourse.py
+modules/gcal.py
 modules/telegram.py
 modules/transcript.py
 modules/zoom.py
