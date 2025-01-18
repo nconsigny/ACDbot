@@ -1,10 +1,12 @@
 import os
 import sys
 import argparse
+import discourse
+import zoom
 from github import Github
 
 # Import your custom modules
-from modules import discourse, zoom
+
 
 def handle_github_issue(issue_number: int, repo_name: str):
     """
