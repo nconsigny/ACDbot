@@ -10,7 +10,7 @@ from github import Github
 def handle_github_issue(issue_number: int, repo_name: str):
     """
     Fetches the specified GitHub issue, extracts its title and body,
-    then creates a Discourse topic using the issue title as the topic title
+    then creates or updates a Discourse topic using the issue title as the topic title
     and its body as the topic content.
 
     If the date/time or duration cannot be parsed from the issue body, 
@@ -25,15 +25,36 @@ def handle_github_issue(issue_number: int, repo_name: str):
     issue_title = issue.title
     issue_body = issue.body or "(No issue body provided.)"
 
-    # 3. Create Discourse Topic
-    discourse_response = discourse.create_topic(
-        title=issue_title,
-        body=issue_body,
-        category_id=63  # Replace with your desired category ID
-    )
+    # 3. Check for existing topic_id in issue comments
+    topic_id = None
+    for comment in issue.get_comments():
+        if comment.body.startswith("**Discourse Topic ID:**"):
+            try:
+                topic_id = int(comment.body.split("**Discourse Topic ID:**")[1].strip())
+                break
+            except ValueError:
+                continue
+
+    if topic_id:
+        # Update the existing Discourse topic
+        discourse_response = discourse.update_topic(
+            topic_id=topic_id,
+            title=issue_title,
+            body=issue_body,
+            category_id=63  
+        )
+    else:
+        # Create a new Discourse topic
+        discourse_response = discourse.create_topic(
+            title=issue_title,
+            body=issue_body,
+            category_id=63  
+        )
+        topic_id = discourse_response.get("topic_id")
+        # Add a hidden comment with the topic_id for future updates
+        issue.create_comment(f"**Discourse Topic ID:** {topic_id}")
 
     # 4. (Optional) Create Zoom Meeting
-    #    Raise a ValueError in parse_issue_for_time if date/time format is invalid
     try:
         start_time, duration = parse_issue_for_time(issue_body)
         join_url, zoom_id = zoom.create_meeting(
@@ -54,11 +75,10 @@ def handle_github_issue(issue_number: int, repo_name: str):
 
     # 5. Post Discourse Topic Link as a Comment
     try:
-        topic_id = discourse_response.get("topic_id")
         discourse_url = (
             f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
         )
-        issue.create_comment(f"Discourse topic created: {discourse_url}")
+        issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
 
@@ -104,7 +124,7 @@ def parse_issue_for_time(issue_body: str):
     return start_time, duration
 
 def main():
-    parser = argparse.ArgumentParser(description="Handle GitHub issue and create Discourse topic.")
+    parser = argparse.ArgumentParser(description="Handle GitHub issue and create/update Discourse topic.")
     parser.add_argument("--issue_number", required=True, type=int, help="GitHub issue number")
     parser.add_argument("--repo", required=True, help="GitHub repository (e.g., 'org/repo')")
     args = parser.parse_args()

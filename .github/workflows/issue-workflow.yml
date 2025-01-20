@@ -41,9 +41,7 @@ jobs:
         run: |
           pip list
 
-     
-
-      - name: Handle new issue
+      - name: Handle issue
         run: |
           python scripts/handle_issue.py \
               --issue_number "${{ github.event.issue.number }}" \
