@@ -82,24 +82,31 @@ def handle_github_issue(issue_number: int, repo_name: str):
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
 
+
 def parse_issue_for_time(issue_body: str):
     """
     Parses the issue body to extract a start time and duration based on possible formats:
-    
-    1) A single start time and a separate "Duration in minutes" line, e.g.
-         [Jan 16, 2025, 14:00 UTC](https://savvytime.com/...) or [Jan 18, 2025, 14:00-15:30 UTC](https://savvytime.com/...)
+
+    1) A single start time and a separate "Duration in minutes" line, e.g.,
+         [Jan 16, 2025, 14:00 UTC](https://savvytime.com/...)
          Duration in minutes
          90
+
+    2) A start time with an end time separated by a dash, e.g.,
+         [Jan 18, 2025, 14:00-15:30 UTC](https://savvytime.com/...)
+       This implies a 90-minute duration (14:00 → 15:30).
+
+    The parser is now improved to handle both formats with or without commas in the date.
+
+    If these values can't be found or parsed, a ValueError is raised.
     """
     import re
     from datetime import datetime
 
-    # Regex to capture something like "[Jan 16, 2025, 14:00 UTC](...)" or
-    # "[Jan 18, 2025, 14:00-15:30 UTC](...)"
-    #  - Group 1: "Jan 16, 2025, 14:00" or "Jan 18, 2025, 14:00"
-    #  - Group 2: "-15:30" (optional dash + end time)
+    # Updated regex to make commas optional
+    # This allows both "[Jan 18 2025 14:00 UTC](...)" and "[Jan 18, 2025, 14:00 UTC](...)"
     pattern = re.compile(
-        r"\[([A-Za-z]{3}\s+\d{1,2},\s*\d{4},\s*\d{1,2}:\d{2})(-\d{1,2}:\d{2})?\s*UTC\]\(",
+        r"\[([A-Za-z]{3}\s+\d{1,2}(?:,\s*)?\d{4}(?:,\s*)?\d{1,2}:\d{2})(-\d{1,2}:\d{2})?\s*UTC\]\(",
         re.IGNORECASE
     )
 
@@ -110,19 +117,19 @@ def parse_issue_for_time(issue_body: str):
     # -------------------------
     # Handle start time
     # -------------------------
-    # Extract the first portion, e.g., "Jan 16, 2025, 14:00"
+    # Extract the first portion, e.g., "Jan 18 2025 14:00" or "Jan 18, 2025, 14:00"
     datetime_str = match.group(1).strip()
     # Attempt to parse the start time
     try:
-        start_dt = datetime.strptime(datetime_str, "%b %d, %Y, %H:%M")
-        start_time_utc = start_dt.isoformat() + "Z"
+        start_dt = datetime.strptime(datetime_str, "%b %d %Y %H:%M")
     except ValueError:
-        raise ValueError("Unable to parse the start time in the specified format.")
+        try:
+            start_dt = datetime.strptime(datetime_str, "%b %d, %Y, %H:%M")
+        except ValueError:
+            raise ValueError("Unable to parse the start time in the specified format.")
+    start_time_utc = start_dt.isoformat() + "Z"
 
-    # -------------------------
-    # Handle optional end time
-    # -------------------------
-    # Group 2 might be something like "-15:30"
+  
     end_segment = match.group(2)  # e.g., "-15:30"
     duration_minutes = None
 
@@ -132,11 +139,17 @@ def parse_issue_for_time(issue_body: str):
         end_time_str = end_segment.lstrip("-").strip()  # "15:30"
         try:
             end_dt = datetime.strptime(
-                f"{start_dt.strftime('%b %d, %Y, ')}{end_time_str}",
-                "%b %d, %Y, %H:%M"
+                f"{start_dt.strftime('%b %d %Y ')}{end_time_str}",
+                "%b %d %Y %H:%M"
             )
         except ValueError:
-            raise ValueError("Unable to parse the end time in the specified format.")
+            try:
+                end_dt = datetime.strptime(
+                    f"{start_dt.strftime('%b %d, %Y, ')}{end_time_str}",
+                    "%b %d, %Y, %H:%M"
+                )
+            except ValueError:
+                raise ValueError("Unable to parse the end time in the specified format.")
 
         # Compute duration in minutes
         if end_dt <= start_dt:
@@ -162,6 +175,7 @@ def parse_issue_for_time(issue_body: str):
 
     return start_time_utc, duration_minutes
 
+
 def main():
     parser = argparse.ArgumentParser(description="Handle GitHub issue and create/update Discourse topic.")
     parser.add_argument("--issue_number", required=True, type=int, help="GitHub issue number")
@@ -169,6 +183,7 @@ def main():
     args = parser.parse_args()
 
     handle_github_issue(issue_number=args.issue_number, repo_name=args.repo)
+
 
 if __name__ == "__main__":
     main()
