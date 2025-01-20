@@ -96,15 +96,19 @@ def parse_issue_for_time(issue_body: str):
          [Jan 18, 2025, 14:00-15:30 UTC](https://savvytime.com/...)
        This implies a 90-minute duration (14:00 → 15:30).
 
-    The parser is now improved to handle both formats with or without commas in the date.
+    The parser is improved to handle uppercase, lowercase, or mixed-case month abbreviations
+    by normalizing the month portion before parsing. Commas around the day/year are also optional.
 
     If these values can't be found or parsed, a ValueError is raised.
     """
     import re
     from datetime import datetime
 
-    # Updated regex to make commas optional
-    # This allows both "[Jan 18 2025 14:00 UTC](...)" and "[Jan 18, 2025, 14:00 UTC](...)"
+    # This pattern matches:
+    #  - "[Jan 18, 2025, 14:00 UTC](...)"
+    #  - "[jan 18 2025 14:00 UTC](...)"
+    #  - "[Jan 18 2025 14:00-15:30 UTC](...)"
+    #    etc.
     pattern = re.compile(
         r"\[([A-Za-z]{3}\s+\d{1,2}(?:,\s*)?\d{4}(?:,\s*)?\d{1,2}:\d{2})(-\d{1,2}:\d{2})?\s*UTC\]\(",
         re.IGNORECASE
@@ -114,53 +118,68 @@ def parse_issue_for_time(issue_body: str):
     if not match:
         raise ValueError("Missing or invalid date/time format (couldn't match bracketed time).")
 
-    # -------------------------
-    # Handle start time
-    # -------------------------
-    # Extract the first portion, e.g., "Jan 18 2025 14:00" or "Jan 18, 2025, 14:00"
+    # Extract the date/time portion, e.g. "jan 18 2025 14:00" or "Jan 18, 2025, 14:00"
     datetime_str = match.group(1).strip()
-    # Attempt to parse the start time
-    try:
-        start_dt = datetime.strptime(datetime_str, "%b %d %Y %H:%M")
-    except ValueError:
+
+    # Normalize the first three letters for the month abbreviation so "jan" => "Jan", "seP" => "Sep", etc.
+    # This ensures datetime.strptime() will accept the month.
+    if len(datetime_str) >= 3:
+        month_part = datetime_str[:3].title()  # e.g., "Jan"
+        remainder = datetime_str[3:]          # e.g., " 18 2025 14:00"
+        datetime_str = month_part + remainder
+
+    # Try parsing the start time in two ways (with or without commas).
+    start_dt = None
+    for fmt in ("%b %d %Y %H:%M", "%b %d, %Y, %H:%M"):
         try:
-            start_dt = datetime.strptime(datetime_str, "%b %d, %Y, %H:%M")
+            start_dt = datetime.strptime(datetime_str, fmt)
+            break
         except ValueError:
-            raise ValueError("Unable to parse the start time in the specified format.")
+            pass
+
+    if not start_dt:
+        raise ValueError("Unable to parse the start time in the specified format.")
+
     start_time_utc = start_dt.isoformat() + "Z"
 
-  
-    end_segment = match.group(2)  # e.g., "-15:30"
+    # Check for optional end time segment (e.g. "-15:30")
+    end_segment = match.group(2)
     duration_minutes = None
 
     if end_segment:
-        # If user provided an end time "14:00-15:30"
-        # Remove the leading dash, then parse
-        end_time_str = end_segment.lstrip("-").strip()  # "15:30"
-        try:
-            end_dt = datetime.strptime(
-                f"{start_dt.strftime('%b %d %Y ')}{end_time_str}",
-                "%b %d %Y %H:%M"
-            )
-        except ValueError:
-            try:
-                end_dt = datetime.strptime(
-                    f"{start_dt.strftime('%b %d, %Y, ')}{end_time_str}",
-                    "%b %d, %Y, %H:%M"
-                )
-            except ValueError:
-                raise ValueError("Unable to parse the end time in the specified format.")
+        # Remove the leading dash, e.g. "-15:30" => "15:30"
+        end_time_str = end_segment.lstrip("-").strip()
 
-        # Compute duration in minutes
+        # We also need to handle the month/day/year for the end time, but we already have it in start_dt.
+        # We'll reconstruct a new date string for the end time using the same approach.
+        # Example: "Jan 18 2025" + " 15:30"
+        date_prefix = start_dt.strftime("%b %d %Y ")
+        end_datetime_str = date_prefix + end_time_str
+
+        # Normalize the month in case the start_dt month was originally lowercase
+        # (Not always necessary if date_prefix is from strftime, which already yields capitalized month.)
+        if len(end_datetime_str) >= 3:
+            end_datetime_str = end_datetime_str[0:3].title() + end_datetime_str[3:]
+
+        end_dt = None
+        # Attempt parsing with or without commas in the same spirit:
+        for fmt_end in ("%b %d %Y %H:%M", "%b %d, %Y, %H:%M"):
+            try:
+                end_dt = datetime.strptime(end_datetime_str, fmt_end)
+                break
+            except ValueError:
+                pass
+
+        if not end_dt:
+            raise ValueError("Unable to parse the end time in the specified format.")
+
         if end_dt <= start_dt:
-            raise ValueError(
-                "End time is not after start time; cannot compute positive duration."
-            )
+            raise ValueError("End time is not after start time; cannot compute positive duration.")
 
         duration_minutes = int((end_dt - start_dt).total_seconds() // 60)
     else:
-        # If user did not provide an end time in the bracketed text,
-        # look for a "Duration in minutes" line in the rest of the issue
+        # If user didn't provide an end time, look for a "Duration in minutes" line in the rest of the issue.
+        import re
         duration_match = re.search(
             r"Duration in minutes\s*\n-?\s*(\d+)",
             issue_body,
@@ -168,8 +187,7 @@ def parse_issue_for_time(issue_body: str):
         )
         if not duration_match:
             raise ValueError(
-                "Missing or invalid duration format. "
-                "Provide 'Duration in minutes' or start-end time in bracketed text."
+                "Missing or invalid duration format. Provide 'Duration in minutes' or a start-end time in bracketed text."
             )
         duration_minutes = int(duration_match.group(1))
 
