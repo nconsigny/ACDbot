@@ -84,44 +84,83 @@ def handle_github_issue(issue_number: int, repo_name: str):
 
 def parse_issue_for_time(issue_body: str):
     """
-    Parses the issue body to extract start time and duration based on the new format.
-
-    Expected format example within the issue body:
-      - [Jan 16, 2025, 14:00 UTC](https://savvytime.com/converter/utc/jan-16-2025/2pm)
-      - Duration in minutes
-
-    If these values can't be found or parsed, a ValueError is raised instead of falling back.
+    Parses the issue body to extract a start time and duration based on possible formats:
+    
+    1) A single start time and a separate "Duration in minutes" line, e.g.
+         [Jan 16, 2025, 14:00 UTC](https://savvytime.com/...) or [Jan 18, 2025, 14:00-15:30 UTC](https://savvytime.com/...)
+         Duration in minutes
+         90
     """
     import re
     from datetime import datetime
 
-    # Match something like: [Jan 16, 2025, 14:00 UTC](...)
-    date_time_match = re.search(
-        r"\[([A-Za-z]{3} \d{1,2}, \d{4}, \d{1,2}:\d{2} UTC)\]\(",
-        issue_body
-    )
-    if not date_time_match:
-        raise ValueError("Missing or invalid date/time format.")
-
-    dt_str = date_time_match.group(1).strip()
-    # Example format: "Jan 16, 2025, 14:00 UTC"
-    try:
-        dt_obj = datetime.strptime(dt_str, "%b %d, %Y, %H:%M UTC")
-        start_time = dt_obj.isoformat() + "Z"
-    except ValueError:
-        raise ValueError("Unable to parse date/time in the specified format.")
-
-    # Extract duration in minutes
-    duration_match = re.search(
-        r"Duration in minutes\s*\n-?\s*(\d+)",
-        issue_body,
+    # Regex to capture something like "[Jan 16, 2025, 14:00 UTC](...)" or
+    # "[Jan 18, 2025, 14:00-15:30 UTC](...)"
+    #  - Group 1: "Jan 16, 2025, 14:00" or "Jan 18, 2025, 14:00"
+    #  - Group 2: "-15:30" (optional dash + end time)
+    pattern = re.compile(
+        r"\[([A-Za-z]{3}\s+\d{1,2},\s*\d{4},\s*\d{1,2}:\d{2})(-\d{1,2}:\d{2})?\s*UTC\]\(",
         re.IGNORECASE
     )
-    if not duration_match:
-        raise ValueError("Missing or invalid duration format.")
 
-    duration = int(duration_match.group(1))
-    return start_time, duration
+    match = pattern.search(issue_body)
+    if not match:
+        raise ValueError("Missing or invalid date/time format (couldn't match bracketed time).")
+
+    # -------------------------
+    # Handle start time
+    # -------------------------
+    # Extract the first portion, e.g., "Jan 16, 2025, 14:00"
+    datetime_str = match.group(1).strip()
+    # Attempt to parse the start time
+    try:
+        start_dt = datetime.strptime(datetime_str, "%b %d, %Y, %H:%M")
+        start_time_utc = start_dt.isoformat() + "Z"
+    except ValueError:
+        raise ValueError("Unable to parse the start time in the specified format.")
+
+    # -------------------------
+    # Handle optional end time
+    # -------------------------
+    # Group 2 might be something like "-15:30"
+    end_segment = match.group(2)  # e.g., "-15:30"
+    duration_minutes = None
+
+    if end_segment:
+        # If user provided an end time "14:00-15:30"
+        # Remove the leading dash, then parse
+        end_time_str = end_segment.lstrip("-").strip()  # "15:30"
+        try:
+            end_dt = datetime.strptime(
+                f"{start_dt.strftime('%b %d, %Y, ')}{end_time_str}",
+                "%b %d, %Y, %H:%M"
+            )
+        except ValueError:
+            raise ValueError("Unable to parse the end time in the specified format.")
+
+        # Compute duration in minutes
+        if end_dt <= start_dt:
+            raise ValueError(
+                "End time is not after start time; cannot compute positive duration."
+            )
+
+        duration_minutes = int((end_dt - start_dt).total_seconds() // 60)
+    else:
+        # If user did not provide an end time in the bracketed text,
+        # look for a "Duration in minutes" line in the rest of the issue
+        duration_match = re.search(
+            r"Duration in minutes\s*\n-?\s*(\d+)",
+            issue_body,
+            re.IGNORECASE
+        )
+        if not duration_match:
+            raise ValueError(
+                "Missing or invalid duration format. "
+                "Provide 'Duration in minutes' or start-end time in bracketed text."
+            )
+        duration_minutes = int(duration_match.group(1))
+
+    return start_time_utc, duration_minutes
 
 def main():
     parser = argparse.ArgumentParser(description="Handle GitHub issue and create/update Discourse topic.")
