@@ -86,110 +86,96 @@ def handle_github_issue(issue_number: int, repo_name: str):
 def parse_issue_for_time(issue_body: str):
     """
     Parses the issue body to extract a start time and duration based on possible formats:
-
-    1) A single start time and a separate "Duration in minutes" line, e.g.,
-         - We will not have a meeting on [Jan 16, 2025, 14:00 UTC](...)
-         - Duration in minutes
-         - 90
-
-    2) A start time with an end time separated by a dash, e.g.,
-         - We will not have a meeting on [Jan 18, 2025, 14:00-15:30 UTC](...)
-       This implies a 90-minute duration (14:00 → 15:30).
-
-    If any values can't be found or parsed, a ValueError is raised.
+    
+    - Date/time line followed by a duration line (with or without "Duration in minutes" preceding it)
     """
     import re
     from datetime import datetime
 
     # -------------------------------------------------------------------------
-    # 1) Improved regex for the bracketed date/time:
-    #    Accepts patterns like [Jan 18 2025 14:00 UTC](...) or [Jan 18, 2025, 14:00 UTC](...)
-    #    Also optionally [-15:30] for an end time, like 14:00-15:30
+    # 1. Regex pattern to find the date/time in the issue body
     # -------------------------------------------------------------------------
     date_pattern = re.compile(
         r"""
-        \[                         # A literal '['
-        (                          # Group 1 => the entire start datetime text
-          [A-Za-z]{3}              # Month abbreviation (any case) e.g., 'Jan', 'jan'
-          [,\s]+                   # One or more commas/spaces
-          \d{1,2}                  # Day, e.g., '18'
-          (?:[,\s]+)\d{4}          # One or more commas/spaces, followed by 4-digit year
-          (?:[,\s]+)\d{1,2}:\d{2}  # One or more commas/spaces, then hour:minute
+        \[                         # Literal '['
+        (                          # Start of group for date/time
+          [A-Za-z]{3}              # Month abbreviation (e.g., Jan, Feb)
+          [,\s]+                   # Comma or whitespace
+          \d{1,2}                  # Day of the month
+          [,\s]+                   # Comma or whitespace
+          \d{4}                    # Year
+          [,\s]+                   # Comma or whitespace
+          \d{1,2}:\d{2}            # Time in HH:MM format
         )
-        (?:-(\d{1,2}:\d{2}))?      # Group 2 => optional end time after '-', e.g. '-15:30'
-        \s*UTC\]\(                 # Then " UTC]("
+        (?:-(\d{1,2}:\d{2}))?      # Optional end time (HH:MM)
+        \s*UTC\]                   # ' UTC]'
         """,
         re.IGNORECASE | re.VERBOSE
     )
 
-    match = date_pattern.search(issue_body)
-    if not match:
+    date_match = date_pattern.search(issue_body)
+    if not date_match:
         raise ValueError("Missing or invalid date/time format (couldn't match bracketed time).")
 
-    datetime_str = match.group(1)  # e.g. "jan 18 2025 14:00" or "Jan 18, 2025, 14:00"
-    end_time_str = match.group(2)  # e.g. "15:30" if present, or None
+    datetime_str = date_match.group(1)
+    end_time_str = date_match.group(2)
 
-    # -------------------------------------------------------------------------
-    # 2) Normalize the start datetime string to handle the month abbreviation
-    #    Python's datetime.strptime() expects "Jan" not "jan"/"JAN".
-    # -------------------------------------------------------------------------
-    # Example: "jan 18 2025 14:00" -> "Jan 18 2025 14:00"
-    if len(datetime_str) >= 3:
-        datetime_str = datetime_str[0:3].title() + datetime_str[3:]
+    # Normalize month abbreviation
+    datetime_str = datetime_str.title()
 
     datetime_str = datetime_str.replace(",", " ")
-    # Collapse multiple spaces => single space
     datetime_str = re.sub(r"\s+", " ", datetime_str).strip()
 
-    # Parse the start datetime with strptime
-    # Format now expected: "Jan 18 2025 14:00"
+    # Parse start datetime
     try:
         start_dt = datetime.strptime(datetime_str, "%b %d %Y %H:%M")
     except ValueError as e:
         raise ValueError(f"Unable to parse the start time: {e}")
-
+    
     start_time_utc = start_dt.isoformat() + "Z"
 
     # -------------------------------------------------------------------------
-    # 3) Parse the optional end time if present
+    # 2. Determine duration
     # -------------------------------------------------------------------------
     duration_minutes = None
     if end_time_str:
-        # e.g. "14:00-15:30" => end_time_str = "15:30"
-        # We'll construct "Jan 18 2025 15:30"
+        # Calculate duration from end time
         end_datetime_str = f"{start_dt.strftime('%b %d %Y')} {end_time_str}"
-
         try:
             end_dt = datetime.strptime(end_datetime_str, "%b %d %Y %H:%M")
         except ValueError as e:
             raise ValueError(f"Unable to parse the end time: {e}")
 
         if end_dt <= start_dt:
-            raise ValueError("End time is not after start time; cannot compute positive duration.")
+            raise ValueError("End time must be after start time.")
+
         duration_minutes = int((end_dt - start_dt).total_seconds() // 60)
     else:
-        # ---------------------------------------------------------------------
-        # 4) Extract "Duration in minutes" if no end time was provided
-        #    We'll be lenient with leading bullets/dashes. We'll let them appear
-        #    on both lines. We also allow multiple spaces. We allow \r\n or \n.
-        # ---------------------------------------------------------------------
+        # Extract duration from the line following the date/time
+        # Find the position after the date/time match
+        end_pos = date_match.end()
+
+        # Extract the remaining text after date/time
+        remaining_text = issue_body[end_pos:]
+
+        # Regex to find a number (duration) in the lines after date/time
         duration_pattern = re.compile(
             r"""
-            (?sm)                    # DOTALL (.) matches newlines, MULTILINE for ^$
-            ^[ \t\-]*                # Start of a line, optional spaces/dashes
-            Duration\s+in\s+minutes # The key phrase, ignoring case because re.IGNORECASE
-            [ \t]*[\r\n]+            # Then only whitespace until a line break
-            ^[ \t\-]*                # On the next line, optional spaces/dashes
-            (\d+)                    # The actual number of minutes (Group 1)
+            ^[ \t\-]*                # Optional spaces/dashes at the start
+            (?:Duration\s+in\s+minutes\s*)? # Optional 'Duration in minutes'
+            [ \t\-]*                 # Optional spaces/dashes
+            (\d+)                    # The duration number
             """,
-            re.IGNORECASE | re.VERBOSE
+            re.MULTILINE | re.IGNORECASE | re.VERBOSE
         )
-        match_duration = duration_pattern.search(issue_body)
-        if not match_duration:
+
+        duration_match = duration_pattern.search(remaining_text)
+        if duration_match:
+            duration_minutes = int(duration_match.group(1))
+        else:
             raise ValueError(
-                "Missing or invalid duration format. Provide 'Duration in minutes' or a start-end time in bracketed text."
+                "Missing or invalid duration format. Provide duration in minutes after the date/time."
             )
-        duration_minutes = int(match_duration.group(1))
 
     return start_time_utc, duration_minutes
 
