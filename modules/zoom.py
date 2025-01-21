@@ -18,9 +18,14 @@ def create_meeting(topic, start_time, duration):
     }
     payload = {
         "topic": topic,
-        "duration": duration,
-        'start_time': start_time, # date+time
-        "type": 2
+        "type": 2,  # Scheduled meeting
+        "start_time": start_time,  # ISO 8601 format, e.g., "2025-01-18T14:00:00Z"
+        "duration": duration,  # Duration in minutes
+        "settings": {
+            "auto_recording": "cloud",  # Enable automatic cloud recording
+            "approval_type": 0,  # Automatically approve participants
+            "waiting_room": False
+        }
     }
     resp = requests.post(f"{api_base_url}/users/me/meetings", 
                             headers=headers, 
@@ -90,4 +95,19 @@ def get_download_url():
 
 def fetch_zoom_transcript():
     print(get_download_url)
+
+def get_meeting_recording(meeting_id):
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    url = f"{api_base_url}/meetings/{meeting_id}/recordings"
+
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        error_details = response.json()
+        print(f"Error fetching meeting recording: {response.status_code} {response.reason} - {error_details}")
+        return None
+
+    return response.json()
 

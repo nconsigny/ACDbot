@@ -46,6 +46,12 @@ jobs:
           python scripts/handle_issue.py \
               --issue_number "${{ github.event.issue.number }}" \
               --repo "${{ github.repository }}"
+
+      - name: YouTube
+        run: |
+          python scripts/upload_zoom_recording.py \
+            --meeting_id "${{ steps.create_zoom.outputs.meeting_id }}" \
+            --youtube_title "${{ steps.create_zoom.outputs.title }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
@@ -54,5 +60,10 @@ jobs:
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
           DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
           DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }}
+          SENDER_EMAIL: ${{ secrets.SENDER_EMAIL }}
+          SENDER_EMAIL_PASSWORD: ${{ secrets.SENDER_EMAIL_PASSWORD }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
           #TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           #TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }} 
