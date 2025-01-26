@@ -24,7 +24,14 @@ def create_meeting(topic, start_time, duration):
         "settings": {
             "auto_recording": "cloud",  # Enable automatic cloud recording
             "approval_type": 0,  # Automatically approve participants
-            "waiting_room": False
+            "waiting_room": False,
+            "recording": {
+                "auto_recording": "cloud",
+                "cloud_recording": True,
+                "cloud_recording_download": True,
+                "cloud_recording_thumbnails": True,
+                "recording_audio_transcript": True  # Enable audio transcription
+            }
         }
     }
     resp = requests.post(f"{api_base_url}/users/me/meetings", 
@@ -38,7 +45,7 @@ def create_meeting(topic, start_time, duration):
     
     content = {
                 "meeting_url": response_data["join_url"], 
-                "password": response_data["password"],
+                "password": response_data.get("password", ""),
                 "meetingTime": response_data["start_time"],
                 "purpose": response_data["topic"],
                 "duration": response_data["duration"],
@@ -110,4 +117,43 @@ def get_meeting_recording(meeting_id):
         return None
 
     return response.json()
+
+def get_meeting_transcript(meeting_id):
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    url = f"{api_base_url}/meetings/{meeting_id}/recordings"
+
+    response = requests.get(url, headers=headers)
+    if response.status_code != 200:
+        error_details = response.json()
+        print(f"Error fetching meeting recordings: {response.status_code} {response.reason} - {error_details}")
+        return None
+
+    recording_files = response.json().get('recording_files', [])
+    transcript_url = None
+
+    for file in recording_files:
+        if file.get('file_type') == 'TRANSCRIPT':
+            transcript_url = file.get('download_url')
+            break
+
+    if not transcript_url:
+        print("No transcript file found for this meeting.")
+        return None
+
+    # The transcript file requires authentication to download
+    transcript_content = download_zoom_file(transcript_url, access_token)
+    return transcript_content
+
+def download_zoom_file(download_url, access_token):
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+    response = requests.get(download_url, headers=headers)
+    if response.status_code != 200:
+        print(f"Error downloading file: {response.status_code} {response.reason}")
+        return None
+    return response.content.decode('utf-8')
 
