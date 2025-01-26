@@ -1,5 +1,7 @@
 import requests
 import os
+from datetime import datetime, timedelta
+from .zoom_auth import get_access_token
 
 account_id=os.environ["ZOOM_ACCOUNT_ID"]
 client_id=os.environ["ZOOM_CLIENT_ID"]
@@ -119,41 +121,73 @@ def get_meeting_recording(meeting_id):
     return response.json()
 
 def get_meeting_transcript(meeting_id):
+    """
+    Fetches the transcript file content for a given meeting ID.
+
+    :param meeting_id: The Zoom meeting ID
+    :return: Transcript text content
+    """
     access_token = get_access_token()
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
     url = f"{api_base_url}/meetings/{meeting_id}/recordings"
-
     response = requests.get(url, headers=headers)
     if response.status_code != 200:
-        error_details = response.json()
-        print(f"Error fetching meeting recordings: {response.status_code} {response.reason} - {error_details}")
-        return None
+        print(f"Error fetching meeting recordings: {response.status_code} {response.text}")
+        response.raise_for_status()
+    data = response.json()
+    recording_files = data.get('recording_files', [])
 
-    recording_files = response.json().get('recording_files', [])
-    transcript_url = None
-
+    # Find the transcript file
+    transcript_file = None
     for file in recording_files:
         if file.get('file_type') == 'TRANSCRIPT':
-            transcript_url = file.get('download_url')
+            transcript_file = file
             break
 
-    if not transcript_url:
-        print("No transcript file found for this meeting.")
-        return None
+    if not transcript_file:
+        raise ValueError(f"No transcript found for meeting {meeting_id}")
 
-    # The transcript file requires authentication to download
-    transcript_content = download_zoom_file(transcript_url, access_token)
+    download_url = transcript_file.get('download_url')
+    if not download_url:
+        raise ValueError("Transcript download URL not found.")
+
+    # Download the transcript file
+    transcript_content = download_zoom_file(download_url, access_token)
     return transcript_content
 
 def download_zoom_file(download_url, access_token):
+    """
+    Downloads a file from Zoom using the access token.
+
+    :param download_url: The URL to the file
+    :param access_token: Zoom access token
+    :return: Content of the file
+    """
+    response = requests.get(download_url, headers={"Authorization": f"Bearer {access_token}"})
+    if response.status_code != 200:
+        print(f"Error downloading file: {response.status_code} {response.text}")
+        response.raise_for_status()
+    return response.content.decode('utf-8')
+
+def get_recordings_list():
+    """
+    Retrieves a list of cloud recordings for the user.
+    """
+    access_token = get_access_token()
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
-    response = requests.get(download_url, headers=headers)
+    params = {
+        "page_size": 100,
+        "from": (datetime.utcnow() - timedelta(days=7)).strftime("%Y-%m-%d"),  # Adjust time range as needed
+        "to": datetime.utcnow().strftime("%Y-%m-%d")
+    }
+    response = requests.get(f"{api_base_url}/users/me/recordings", headers=headers, params=params)
     if response.status_code != 200:
-        print(f"Error downloading file: {response.status_code} {response.reason}")
-        return None
-    return response.content.decode('utf-8')
+        print(f"Error fetching recordings: {response.status_code} {response.text}")
+        response.raise_for_status()
+    data = response.json()
+    return data.get("meetings", [])
 

@@ -5,9 +5,23 @@ from modules import discourse, zoom
 from github import Github
 import re
 from datetime import datetime
+import json
+import requests
+from github import InputGitAuthor
 
 # Import your custom modules
 
+MAPPING_FILE = "meeting_topic_mapping.json"
+
+def load_meeting_topic_mapping():
+    if os.path.exists(MAPPING_FILE):
+        with open(MAPPING_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_meeting_topic_mapping(mapping):
+    with open(MAPPING_FILE, "w") as f:
+        json.dump(mapping, f)
 
 def handle_github_issue(issue_number: int, repo_name: str):
     """
@@ -26,6 +40,9 @@ def handle_github_issue(issue_number: int, repo_name: str):
     issue = repo.get_issue(number=issue_number)
     issue_title = issue.title
     issue_body = issue.body or "(No issue body provided.)"
+
+    # Load existing mapping
+    mapping = load_meeting_topic_mapping()
 
     # 3. Check for existing topic_id in issue comments
     topic_id = None
@@ -83,6 +100,14 @@ def handle_github_issue(issue_number: int, repo_name: str):
         issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
+
+    # 6. Update the mapping and save it
+    mapping[str(zoom_id)] = topic_id
+    save_meeting_topic_mapping(mapping)
+
+    # Commit the updated mapping file to the repository
+    commit_mapping_file(repo)
+    print(f"Mapping updated: Zoom Meeting ID {zoom_id} -> Discourse Topic ID {topic_id}")
 
 
 def parse_issue_for_time(issue_body: str):
@@ -185,6 +210,39 @@ def parse_issue_for_time(issue_body: str):
 
     return start_time_utc, duration_minutes
 
+def commit_mapping_file(repo):
+    file_path = MAPPING_FILE
+    commit_message = "Update meeting-topic mapping"
+    branch = os.environ.get("GITHUB_REF_NAME", "main")
+    author = InputGitAuthor(
+        name="GitHub Actions Bot",
+        email="actions@github.com"
+    )
+
+    with open(file_path, "r") as f:
+        file_content = f.read()
+
+    # Check if the file exists in the repository
+    try:
+        contents = repo.get_contents(file_path, ref=branch)
+        repo.update_file(
+            path=contents.path,
+            message=commit_message,
+            content=file_content,
+            sha=contents.sha,
+            branch=branch,
+            author=author,
+        )
+        print(f"Updated {file_path} in the repository.")
+    except Exception as e:
+        repo.create_file(
+            path=file_path,
+            message=commit_message,
+            content=file_content,
+            branch=branch,
+            author=author,
+        )
+        print(f"Created {file_path} in the repository.")
 
 def main():
     parser = argparse.ArgumentParser(description="Handle GitHub issue and create/update Discourse topic.")

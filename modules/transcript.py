@@ -1,25 +1,40 @@
 import os
+import json
 from modules import zoom, discourse
 
-def post_zoom_transcript_to_discourse(meeting_id: str, category_id: int = 63):
+MAPPING_FILE = "meeting_topic_mapping.json"
+
+def load_meeting_topic_mapping():
+    if os.path.exists(MAPPING_FILE):
+        with open(MAPPING_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def post_zoom_transcript_to_discourse(meeting_id: str):
     """
-    High-level function: 
-      1) Fetch a transcript from Zoom for the given meeting_id
-      2) Create a Discourse topic with the transcript as the body
-
-    :param meeting_id: Zoom meeting ID (string or int)
-    :param category_id: Discourse category ID
-    :return: The JSON response from discourse.create_topic
+    Posts the Zoom meeting transcript as a reply to the corresponding Discourse topic.
     """
-    transcript_text = zoom.fetch_zoom_transcript(meeting_id)
+    # Load the mapping to find the corresponding Discourse topic ID
+    mapping = load_meeting_topic_mapping()
+    discourse_topic_id = mapping.get(meeting_id)
+    if not discourse_topic_id:
+        raise ValueError(f"No Discourse topic mapping found for meeting ID {meeting_id}")
 
-    # If you want to give your new topic a descriptive title:
-    topic_title = f"Zoom Transcript for Meeting {meeting_id}"
+    # Fetch the transcript from Zoom
+    transcript_text = zoom.get_meeting_transcript(meeting_id)
+    if not transcript_text:
+        raise ValueError(f"No transcript found for meeting {meeting_id}")
 
-    # Now create a Discourse topic with the transcript as its content
-    topic_data = discourse.create_topic(
-        title=topic_title,
-        body=transcript_text,
-        category_id=category_id
+    # Check if the transcript has already been posted
+    transcript_already_posted = discourse.check_if_transcript_posted(
+        topic_id=discourse_topic_id,
+        meeting_id=meeting_id
     )
-    return topic_data
+    if transcript_already_posted:
+        print(f"Transcript for meeting {meeting_id} has already been posted.")
+        return
+
+    # Post the transcript as a reply to the topic
+    post_content = f"**Transcript for Meeting ID {meeting_id}:**\n\n{transcript_text}"
+    discourse.create_post(topic_id=discourse_topic_id, body=post_content)
+    print(f"Transcript for meeting {meeting_id} posted to Discourse topic {discourse_topic_id}.")
