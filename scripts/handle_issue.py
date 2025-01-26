@@ -3,6 +3,8 @@ import sys
 import argparse
 from modules import discourse, zoom
 from github import Github
+import re
+from datetime import datetime
 
 # Import your custom modules
 
@@ -88,63 +90,67 @@ def parse_issue_for_time(issue_body: str):
     Parses the issue body to extract a start time and duration based on possible formats:
     
     - Date/time line followed by a duration line (with or without "Duration in minutes" preceding it)
+    - Accepts both abbreviated and full month names
     """
-    import re
-    from datetime import datetime
-
+    
     # -------------------------------------------------------------------------
     # 1. Regex pattern to find the date/time in the issue body
     # -------------------------------------------------------------------------
     date_pattern = re.compile(
         r"""
-        \[                         # Literal '['
-        (                          # Start of group for date/time
-          [A-Za-z]{3}              # Month abbreviation (e.g., Jan, Feb)
-          [,\s]+                   # Comma or whitespace
-          \d{1,2}                  # Day of the month
-          [,\s]+                   # Comma or whitespace
-          \d{4}                    # Year
-          [,\s]+                   # Comma or whitespace
-          \d{1,2}:\d{2}            # Time in HH:MM format
-        )
-        (?:-(\d{1,2}:\d{2}))?      # Optional end time (HH:MM)
-        \s*UTC\]                   # ' UTC]'
+        \[?                                        # Optional opening bracket
+        (?:(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+)?    # Optional day of the week
+        (?P<month>[A-Za-z]{3,9})\s+               # Full or abbreviated month name
+        (?P<day>\d{1,2}),?\s+                      # Day of the month, comma optional
+        (?P<year>\d{4}),?\s+                       # Year, comma optional
+        (?P<hour>\d{1,2}):(?P<minute>\d{2})        # Start time HH:MM
+        (?:-(?P<end_hour>\d{1,2}):(?P<end_minute>\d{2}))?  # Optional end time HH:MM
+        \s*UTC                                     # UTC timezone
+        \]?                                        # Optional closing bracket
         """,
         re.IGNORECASE | re.VERBOSE
     )
 
     date_match = date_pattern.search(issue_body)
     if not date_match:
-        raise ValueError("Missing or invalid date/time format (couldn't match bracketed time).")
+        raise ValueError("Missing or invalid date/time format.")
 
-    datetime_str = date_match.group(1)
-    end_time_str = date_match.group(2)
+    month = date_match.group('month')
+    day = date_match.group('day')
+    year = date_match.group('year')
+    hour = date_match.group('hour')
+    minute = date_match.group('minute')
+    end_hour = date_match.group('end_hour')
+    end_minute = date_match.group('end_minute')
 
-    # Normalize month abbreviation
-    datetime_str = datetime_str.title()
-
-    datetime_str = datetime_str.replace(",", " ")
-    datetime_str = re.sub(r"\s+", " ", datetime_str).strip()
-
-    # Parse start datetime
+    # Construct the datetime string
+    datetime_str = f"{month} {day} {year} {hour}:{minute}"
     try:
-        start_dt = datetime.strptime(datetime_str, "%b %d %Y %H:%M")
-    except ValueError as e:
-        raise ValueError(f"Unable to parse the start time: {e}")
-    
+        start_dt = datetime.strptime(datetime_str, "%B %d %Y %H:%M")  # Full month name
+    except ValueError:
+        try:
+            start_dt = datetime.strptime(datetime_str, "%b %d %Y %H:%M")  # Abbreviated month name
+        except ValueError as e:
+            raise ValueError(f"Unable to parse the start time: {e}")
+
     start_time_utc = start_dt.isoformat() + "Z"
 
     # -------------------------------------------------------------------------
     # 2. Determine duration
     # -------------------------------------------------------------------------
     duration_minutes = None
-    if end_time_str:
+    if end_hour and end_minute:
         # Calculate duration from end time
-        end_datetime_str = f"{start_dt.strftime('%b %d %Y')} {end_time_str}"
+        end_month = month  # Assuming the end time is on the same month and year
+        end_day = day      # Assuming the end time is on the same day
+        end_datetime_str = f"{end_month} {end_day} {year} {end_hour}:{end_minute}"
         try:
-            end_dt = datetime.strptime(end_datetime_str, "%b %d %Y %H:%M")
-        except ValueError as e:
-            raise ValueError(f"Unable to parse the end time: {e}")
+            end_dt = datetime.strptime(end_datetime_str, "%B %d %Y %H:%M")  # Full month name
+        except ValueError:
+            try:
+                end_dt = datetime.strptime(end_datetime_str, "%b %d %Y %H:%M")  # Abbreviated month name
+            except ValueError as e:
+                raise ValueError(f"Unable to parse the end time: {e}")
 
         if end_dt <= start_dt:
             raise ValueError("End time must be after start time.")
@@ -161,10 +167,10 @@ def parse_issue_for_time(issue_body: str):
         # Regex to find a number (duration) in the lines after date/time
         duration_pattern = re.compile(
             r"""
-            ^[ \t\-]*                # Optional spaces/dashes at the start
-            (?:Duration\s+in\s+minutes\s*)? # Optional 'Duration in minutes'
-            [ \t\-]*                 # Optional spaces/dashes
-            (\d+)                    # The duration number
+            ^[ \t\-]*                             # Optional spaces/dashes at the start
+            (?:Duration\s+in\s+minutes\s*)?      # Optional 'Duration in minutes'
+            [ \t\-]*                              # Optional spaces/dashes
+            (\d+)                                 # The duration number
             """,
             re.MULTILINE | re.IGNORECASE | re.VERBOSE
         )
