@@ -1,4 +1,4 @@
-name: "Zoom Transcript Poll & Upload"
+name: "Zoom Transcript poster"
 
 on:
   # Allows manual triggering of the workflow.
