@@ -98,3 +98,66 @@ def update_topic(topic_id: int, title: str = None, body: str = None, category_id
             resp_update_post.raise_for_status()
 
     return {"topic_id": topic_id, "updated_title": title, "updated_body": body}
+
+
+def create_post(topic_id: int, body: str):
+    """
+    Creates a new post (reply) in the specified Discourse topic.
+    """
+    api_key = os.environ["DISCOURSE_API_KEY"]
+    api_user = os.environ["DISCOURSE_API_USERNAME"]
+    base_url = os.environ.get("DISCOURSE_BASE_URL", "https://ethereum-magicians.org")
+
+    payload = {
+        "topic_id": topic_id,
+        "raw": body
+    }
+
+    resp = requests.post(
+        f"{base_url}/posts.json",
+        headers={
+            "Api-Key": api_key,
+            "Api-Username": api_user,
+            "Content-Type": "application/json",
+        },
+        data=json.dumps(payload),
+    )
+    if not resp.ok:
+        print(resp.text)  # Log the response content for debugging
+        resp.raise_for_status()
+
+    return resp.json()
+
+
+def get_posts_in_topic(topic_id: int):
+    """
+    Retrieves all posts in a Discourse topic.
+    """
+    api_key = os.environ["DISCOURSE_API_KEY"]
+    api_user = os.environ["DISCOURSE_API_USERNAME"]
+    base_url = os.environ.get("DISCOURSE_BASE_URL", "https://ethereum-magicians.org")
+
+    resp = requests.get(
+        f"{base_url}/t/{topic_id}/posts.json",
+        headers={
+            "Api-Key": api_key,
+            "Api-Username": api_user,
+        },
+    )
+    if not resp.ok:
+        print(resp.text)
+        resp.raise_for_status()
+
+    return resp.json().get("post_stream", {}).get("posts", [])
+
+
+def check_if_transcript_posted(topic_id: int, meeting_id: str):
+    """
+    Checks if the transcript for the given meeting_id has already been posted in the topic.
+    """
+    posts = get_posts_in_topic(topic_id)
+    marker = f"**Transcript for Meeting ID {meeting_id}:**"
+    for post in posts:
+        if marker in post.get("cooked", "") or marker in post.get("raw", ""):
+            return True
+    return False
