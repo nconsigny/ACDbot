@@ -10,6 +10,10 @@ def load_meeting_topic_mapping():
             return json.load(f)
     return {}
 
+def save_meeting_topic_mapping(mapping):
+    with open(MAPPING_FILE, "w") as f:
+        json.dump(mapping, f)
+
 def post_zoom_transcript_to_discourse(meeting_id: str):
     """
     Posts the Zoom meeting transcript as a reply to the corresponding Discourse topic.
@@ -38,3 +42,7 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     post_content = f"**Transcript for Meeting ID {meeting_id}:**\n\n{transcript_text}"
     discourse.create_post(topic_id=discourse_topic_id, body=post_content)
     print(f"Transcript for meeting {meeting_id} posted to Discourse topic {discourse_topic_id}.")
+
+    # Update mapping if needed (e.g., if we obtained the topic ID here)
+    # mapping[meeting_id] = discourse_topic_id
+    # save_meeting_topic_mapping(mapping)
