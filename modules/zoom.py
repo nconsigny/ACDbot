@@ -73,37 +73,6 @@ def get_access_token():
         response_data = response.json()
         return response_data["access_token"]
 
-## transcriptions wip, need to test with paid zoom account
-
-def get_recordings():
-    headers = {
-        "Authorization": f"Bearer {get_access_token}"
-    }
-
-    url = f"https://api.zoom.us/v2/users/me/recordings"
-
-    return requests.get(url, headers=headers).json()
-
-def get_download_url():
-    recordings = get_recordings()
-    if recordings['meetings']: 
-        rec_id = recordings['meetings'][0]['id']
-
-    headers = {
-        "Authorization": f"Bearer {access_token}"
-    }
-
-    url = f"https://api.zoom.us/v2/meetings/{rec_id}/recordings"
-
-    r = requests.get(url, headers=headers).json()
-    
-    url = [i['download_url'] for i in r['recording_files'] if i['recording_type'] == 'audio_only'][0]
-    download_link = f'{url}?access_token={self.access_token}&playback_access_token={r["password"]}'
-    return download_link
-
-def fetch_zoom_transcript():
-    print(get_download_url)
-
 def get_meeting_recording(meeting_id):
     access_token = get_access_token()
     headers = {
