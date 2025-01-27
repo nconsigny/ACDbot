@@ -1,7 +1,6 @@
 import requests
 import os
 from datetime import datetime, timedelta
-from .zoom_auth import get_access_token
 
 account_id=os.environ["ZOOM_ACCOUNT_ID"]
 client_id=os.environ["ZOOM_CLIENT_ID"]
