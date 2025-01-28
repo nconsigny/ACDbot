@@ -62,6 +62,9 @@ def handle_github_issue(issue_number: int, repo_name: str):
             body=issue_body,
             category_id=63  
         )
+        # Create/update comment with both ID and URL
+        discourse_url = f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
+        comment_body = f"**Discourse Topic Updated**\n\n- ID: `{topic_id}`\n- URL: {discourse_url}"
     else:
         # Create a new Discourse topic
         discourse_response = discourse.create_topic(
@@ -70,8 +73,11 @@ def handle_github_issue(issue_number: int, repo_name: str):
             category_id=63  
         )
         topic_id = discourse_response.get("topic_id")
-        # Add a hidden comment with the topic_id for future updates
-        issue.create_comment(f"**Discourse Topic ID:** {topic_id}")
+        discourse_url = f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
+        comment_body = f"**Discourse Topic Created**\n\n- ID: `{topic_id}`\n- URL: {discourse_url}"
+
+    # Post consolidated comment
+    issue.create_comment(comment_body)
 
     # 4. (Optional) Create Zoom Meeting
     try:
@@ -106,15 +112,6 @@ def handle_github_issue(issue_number: int, repo_name: str):
         print(f"Created calendar event: {event_link}")
     except Exception as e:
         print(f"Error creating calendar event: {e}")
-
-    # 6. Post Discourse Topic Link as a Comment
-    try:
-        discourse_url = (
-            f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
-        )
-        issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
-    except Exception as e:
-        issue.create_comment(f"Error posting Discourse topic: {e}")
 
     # 7. Update the mapping and save it
     mapping[str(zoom_id)] = topic_id
