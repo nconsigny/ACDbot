@@ -17,22 +17,28 @@ def create_meeting(topic, start_time, duration):
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
+    
+    # Get alternative hosts from environment
+    alternative_hosts = os.environ.get("ZOOM_ALTERNATIVE_HOSTS", "")
+    
     payload = {
         "topic": topic,
         "type": 2,  # Scheduled meeting
         "start_time": start_time,  # ISO 8601 format, e.g., "2025-01-18T14:00:00Z"
         "duration": duration,  # Duration in minutes
         "settings": {
-            "auto_recording": "cloud",  # Enable automatic cloud recording
-            "approval_type": 0,  # Automatically approve participants
-            "waiting_room": False,
+            "auto_start_meeting_summary": True,  
+            "join_before_host": False,  
+            "waiting_room": True,  
+            "auto_recording": "cloud",  
+            "approval_type": 0,  
+            "alternative_hosts": alternative_hosts,  
             "recording": {
                 "auto_recording": "cloud",
-                "cloud_recording": True,
                 "cloud_recording_download": True,
                 "cloud_recording_thumbnails": True,
                 "recording_audio_transcript": True,
-                "ai_recording": True,  # Enable AI summary
+                "ai_recording": True, 
             },
             "meeting_authentication": False,
             "authentication_option": "",
