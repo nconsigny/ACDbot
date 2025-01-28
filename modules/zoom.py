@@ -31,8 +31,12 @@ def create_meeting(topic, start_time, duration):
                 "cloud_recording": True,
                 "cloud_recording_download": True,
                 "cloud_recording_thumbnails": True,
-                "recording_audio_transcript": True  # Enable audio transcription
-            }
+                "recording_audio_transcript": True,
+                "ai_recording": True,  # Enable AI summary
+            },
+            "meeting_authentication": False,
+            "authentication_option": "",
+            "authentication_domains": ""
         }
     }
     resp = requests.post(f"{api_base_url}/users/me/meetings", 
@@ -159,4 +163,27 @@ def get_recordings_list():
         response.raise_for_status()
     data = response.json()
     return data.get("meetings", [])
+
+def get_meeting_summary(meeting_id):
+    """
+    Fetches the AI-generated meeting summary from Zoom
+    Returns: Dict containing summary text and other metadata
+    """
+    access_token = get_access_token()
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+    url = f"{api_base_url}/meetings/{meeting_id}/recordings/summaries"
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.HTTPError as e:
+        if e.response.status_code == 404:
+            print(f"No AI summary available yet for meeting {meeting_id}")
+        else:
+            print(f"Error fetching summary: {e}")
+        return None
 

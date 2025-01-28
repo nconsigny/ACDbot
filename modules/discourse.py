@@ -153,11 +153,37 @@ def get_posts_in_topic(topic_id: int):
 
 def check_if_transcript_posted(topic_id: int, meeting_id: str):
     """
-    Checks if the transcript for the given meeting_id has already been posted in the topic.
+    Checks if the transcript for the given meeting_id has already been posted.
     """
     posts = get_posts_in_topic(topic_id)
-    marker = f"**Transcript for Meeting ID {meeting_id}:**"
+    marker = f"transcript-{meeting_id}.txt"
     for post in posts:
         if marker in post.get("cooked", "") or marker in post.get("raw", ""):
             return True
     return False
+
+
+def upload_file(file_content: str, file_name: str):
+    """
+    Uploads a file to Discourse and returns the file URL.
+    """
+    api_key = os.environ["DISCOURSE_API_KEY"]
+    api_user = os.environ["DISCOURSE_API_USERNAME"]
+    base_url = os.environ.get("DISCOURSE_BASE_URL", "https://ethereum-magicians.org")
+
+    files = {'file': (file_name, file_content, 'text/plain')}
+    
+    resp = requests.post(
+        f"{base_url}/uploads.json",
+        headers={
+            "Api-Key": api_key,
+            "Api-Username": api_user,
+        },
+        files=files
+    )
+    
+    if not resp.ok:
+        print(resp.text)
+        resp.raise_for_status()
+    
+    return resp.json()["url"]
