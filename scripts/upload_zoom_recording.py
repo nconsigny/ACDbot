@@ -1,66 +1,113 @@
 import os
 import time
+import tempfile
+import requests
+import argparse
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 import googleapiclient.errors
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from modules.zoom import get_meeting_recording
 
+# Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
-CLIENT_SECRETS_FILE = "client_secrets.json"  # Downloaded from Google Cloud Console
+CLIENT_SECRETS_FILE = "client_secrets.json"
 
 def get_authenticated_service():
-    flow = google_auth_oauthlib.flow.InstalledAppFlow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE, SCOPES)
-    
-    credentials = flow.run_local_server(port=8080, prompt='consent')
-    return googleapiclient.discovery.build('youtube', 'v3', credentials=credentials)
+    flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
+    credentials = flow.run_local_server(port=8080)
+    return build('youtube', 'v3', credentials=credentials)
 
-def video_exists(youtube, title):
-    """Check if a video with the same title already exists."""
-    search_response = youtube.search().list(
-        q=title,
-        part='id',
-        type='video',
-        maxResults=1
-    ).execute()
-    
-    return len(search_response.get('items', [])) > 0
+def video_exists(youtube, meeting_id):
+    """Check if video for this meeting ID already exists in mapping"""
+    mapping = load_meeting_topic_mapping()
+    return mapping.get(meeting_id, {}).get("youtube_video_id") is not None
 
-def upload_video(video_file_path, title, description):
-    youtube = get_authenticated_service()
+def download_zoom_recording(meeting_id):
+    """Download Zoom recording MP4 file to temp location"""
+    recording_info = get_meeting_recording(meeting_id)
     
-    # Check if video already exists
-    if video_exists(youtube, title):
-        print(f"Video with title '{title}' already exists. Skipping upload.")
+    if not recording_info or 'recording_files' not in recording_info:
         return None
 
-    request_body = {
-        'snippet': {
-            'title': title,
-            'description': description,
-            'categoryId': '28'  # Category ID for 'Science & Technology'
-        },
-        'status': {
-            'privacyStatus': 'public',  # Options: 'public', 'private', 'unlisted'
+    for file in recording_info['recording_files']:
+        if file.get('file_type') == 'MP4' and file.get('download_url'):
+            download_url = file['download_url']
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+            
+            headers = {
+                "Authorization": f"Bearer {zoom.get_access_token()}", 
+                "Content-Type": "application/json"
+            }
+            
+            response = requests.get(download_url, headers=headers, stream=True)
+            if response.status_code == 200:
+                for chunk in response.iter_content(chunk_size=1024*1024):
+                    if chunk:
+                        temp_file.write(chunk)
+                temp_file.close()
+                return temp_file.name
+    return None
+
+def upload_recording(meeting_id):
+    youtube = get_authenticated_service()
+    mapping = load_meeting_topic_mapping()
+    
+    if video_exists(youtube, meeting_id):
+        print(f"YouTube video already exists for meeting {meeting_id}")
+        return
+
+    video_path = download_zoom_recording(meeting_id)
+    if not video_path:
+        print(f"No MP4 recording available for meeting {meeting_id}")
+        return
+
+    try:
+        meeting_info = zoom.get_meeting(meeting_id)
+        title = f"Ethereum Protocol Call - {meeting_info['topic']}"
+        description = f"Recording of Ethereum protocol call meeting {meeting_id}"
+
+        request_body = {
+            'snippet': {
+                'title': title,
+                'description': description,
+                'categoryId': '28'
+            },
+            'status': {
+                'privacyStatus': 'public',
+            }
         }
-    }
 
-    media_file = googleapiclient.http.MediaFileUpload(video_file_path, chunksize=-1, resumable=True)
-    request = youtube.videos().insert(
-        part="snippet,status",
-        body=request_body,
-        media_body=media_file
-    )
+        media = googleapiclient.http.MediaFileUpload(video_path, chunksize=-1, resumable=True)
+        response = youtube.videos().insert(
+            part="snippet,status",
+            body=request_body,
+            media_body=media
+        ).execute()
 
-    response = None
-    while response is None:
-        try:
-            print("Uploading video...")
-            status, response = request.next_chunk()
-            if response is not None:
-                print("Video uploaded successfully!")
-                return response['id']  # Return the YouTube video ID
-        except googleapiclient.errors.HttpError as e:
-            print(f"An HTTP error {e.resp.status} occurred: {e.content}")
-            break
-    return None 
+        # Update mapping with YouTube video ID
+        mapping[meeting_id] = mapping.get(meeting_id, {})
+        mapping[meeting_id]["youtube_video_id"] = response['id']
+        save_meeting_topic_mapping(mapping)
+        commit_mapping_file()
+        
+        print(f"Uploaded YouTube video: https://youtu.be/{response['id']}")
+
+    except HttpError as e:
+        print(f"YouTube API error: {e}")
+    finally:
+        os.unlink(video_path)  # Clean up temp file
+
+def main():
+    parser = argparse.ArgumentParser(description="Upload Zoom recording to YouTube")
+    parser.add_argument("--meeting_id", required=True, help="Zoom meeting ID to process")
+    args = parser.parse_args()
+    
+    upload_recording(args.meeting_id)
+
+if __name__ == "__main__":
+    main() 
