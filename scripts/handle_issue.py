@@ -1,7 +1,7 @@
 import os
 import sys
 import argparse
-from modules import discourse, zoom
+from modules import discourse, zoom, gcal
 from github import Github
 import re
 from datetime import datetime
@@ -92,7 +92,22 @@ def handle_github_issue(issue_number: int, repo_name: str):
     except Exception as e:
         issue.create_comment(f"Error creating Zoom meeting: {e}")
 
-    # 5. Post Discourse Topic Link as a Comment
+    # 5. Create Google Calendar event
+    try:
+        start_time, duration = parse_issue_for_time(issue_body)
+        calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
+        event_link = gcal.create_event(
+            summary=issue.title,
+            start_dt=start_time,
+            duration_minutes=duration,
+            calendar_id=calendar_id,
+            description=f"Issue: {issue.html_url}\nZoom: {join_url}"
+        )
+        print(f"Created calendar event: {event_link}")
+    except Exception as e:
+        print(f"Error creating calendar event: {e}")
+
+    # 6. Post Discourse Topic Link as a Comment
     try:
         discourse_url = (
             f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
@@ -101,7 +116,7 @@ def handle_github_issue(issue_number: int, repo_name: str):
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
 
-    # 6. Update the mapping and save it
+    # 7. Update the mapping and save it
     mapping[str(zoom_id)] = topic_id
     save_meeting_topic_mapping(mapping)
 
