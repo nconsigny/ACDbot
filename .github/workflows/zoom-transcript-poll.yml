@@ -1,4 +1,4 @@
-name: "Zoom transcript poster"
+name: "Zoom transcript and YouTube video poller"
 
 on:
   # Allows manual triggering of the workflow.
@@ -8,7 +8,7 @@ on:
         description: "Optional: Force processing of a specific Zoom meeting ID"
         required: false
 
-  # Scheduled run every 12 hours.
+  # Scheduled run every 3 hours.
   schedule:
     - cron: "0 */3 * * *"
 
@@ -29,7 +29,7 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -e .
-          pip install pytz
+          pip install pytz google-api-python-client
 
       - name: Poll Zoom for recordings and post transcripts
         run: |
@@ -44,4 +44,17 @@ jobs:
           # Discourse credentials
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
           DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
-          DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }} 
+          DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
+
+
+      #- name: Upload Zoom recordings to YouTube
+      #  run: |
+      #    python scripts/upload_zoom_recording.py \
+      #      --meeting_id "${{ github.event.inputs.FORCE_MEETING_ID }}"
+      #  env:
+      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #    ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+      #    ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+      #    ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+      #    YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+      #    GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }} 
