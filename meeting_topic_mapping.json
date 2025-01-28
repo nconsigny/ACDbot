@@ -1,1 +1,22 @@
-{"82852682318": 22673, "83755510423": 22679, "81158314812": 22680, "85795748353": 22681, "86197906217": 22682}
+{
+    "82852682318": {
+        "discourse_topic_id": 22673,
+        "youtube_video_id": "abc123"
+    },
+    "83755510423": {
+        "discourse_topic_id": 22679,
+        "youtube_video_id": "def456"
+    },
+    "81158314812": {
+        "discourse_topic_id": 22680,
+        "youtube_video_id": "ghi789"
+    },
+    "85795748353": {
+        "discourse_topic_id": 22681,
+        "youtube_video_id": "jkl012"
+    },
+    "86197906217": {
+        "discourse_topic_id": 22682,
+        "youtube_video_id": "mno345"
+    }
+}

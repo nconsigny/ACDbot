@@ -16,7 +16,7 @@ def load_meeting_topic_mapping():
 
 def save_meeting_topic_mapping(mapping):
     with open(MAPPING_FILE, "w") as f:
-        json.dump(mapping, f)
+        json.dump(mapping, f, indent=2)
 
 def commit_mapping_file():
     commit_message = "Update meeting-topic mapping"
@@ -74,8 +74,10 @@ def main():
             # Update mapping file if necessary
             mapping = load_meeting_topic_mapping()
             if meeting_id not in mapping:
-                # You may want to obtain the Discourse topic ID here
-                mapping[meeting_id] = "DISCOURSE_TOPIC_ID"
+                mapping[meeting_id] = {
+                    "discourse_topic_id": "DISCOURSE_TOPIC_ID",
+                    "youtube_video_id": None
+                }
                 save_meeting_topic_mapping(mapping)
                 commit_mapping_file()
         except Exception as e:
@@ -96,7 +98,7 @@ def main():
         if not meeting_id or not end_time_str:
             continue  # Skip if essential data is missing
 
-        if meeting_id in processed_meetings:
+        if meeting_id in mapping:
             print(f"Meeting {meeting_id} has already been processed.")
             continue
 
@@ -116,7 +118,10 @@ def main():
         try:
             # Only add to mapping AFTER successful transcript post
             transcript.post_zoom_transcript_to_discourse(meeting_id)
-            mapping[meeting_id] = mapping.get(meeting_id, "DISCOURSE_TOPIC_ID")
+            mapping[meeting_id] = mapping.get(meeting_id, {
+                "discourse_topic_id": "DISCOURSE_TOPIC_ID",
+                "youtube_video_id": None
+            })
         except Exception as e:
             print(f"Error processing meeting {meeting_id}: {e}")
 
