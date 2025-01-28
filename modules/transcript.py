@@ -24,6 +24,11 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     if not discourse_topic_id:
         raise ValueError(f"No Discourse topic mapping found for meeting ID {meeting_id}")
 
+    # Check if transcript exists before fetching from Zoom
+    if discourse.check_if_transcript_posted(topic_id=discourse_topic_id, meeting_id=meeting_id):
+        print(f"Transcript for meeting {meeting_id} already exists in topic {discourse_topic_id}")
+        return
+
     # Fetch the transcript from Zoom
     transcript_text = zoom.get_meeting_transcript(meeting_id)
     if not transcript_text:

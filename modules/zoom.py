@@ -115,7 +115,8 @@ def get_meeting_transcript(meeting_id):
             break
 
     if not transcript_file:
-        raise ValueError(f"No transcript found for meeting {meeting_id}")
+        print(f"No transcript found for meeting {meeting_id} - available files: {recording_files}")
+        return None
 
     download_url = transcript_file.get('download_url')
     if not download_url:

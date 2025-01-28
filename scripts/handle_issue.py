@@ -109,6 +109,8 @@ def handle_github_issue(issue_number: int, repo_name: str):
     commit_mapping_file(repo)
     print(f"Mapping updated: Zoom Meeting ID {zoom_id} -> Discourse Topic ID {topic_id}")
 
+    # Remove any null mappings or failed entries
+    mapping = {k: v for k, v in mapping.items() if v is not None}
 
 def parse_issue_for_time(issue_body: str):
     """
