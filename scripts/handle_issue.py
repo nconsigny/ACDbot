@@ -114,7 +114,10 @@ def handle_github_issue(issue_number: int, repo_name: str):
         print(f"Error creating calendar event: {e}")
 
     # 7. Update the mapping and save it
-    mapping[str(zoom_id)] = topic_id
+    mapping[str(zoom_id)] = {
+        "discourse_topic_id": topic_id,
+        "youtube_video_id": None
+    }
     save_meeting_topic_mapping(mapping)
 
     # Commit the updated mapping file to the repository

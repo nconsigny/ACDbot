@@ -15,8 +15,24 @@ def get_authenticated_service():
     credentials = flow.run_local_server(port=8080, prompt='consent')
     return googleapiclient.discovery.build('youtube', 'v3', credentials=credentials)
 
+def video_exists(youtube, title):
+    """Check if a video with the same title already exists."""
+    search_response = youtube.search().list(
+        q=title,
+        part='id',
+        type='video',
+        maxResults=1
+    ).execute()
+    
+    return len(search_response.get('items', [])) > 0
+
 def upload_video(video_file_path, title, description):
     youtube = get_authenticated_service()
+    
+    # Check if video already exists
+    if video_exists(youtube, title):
+        print(f"Video with title '{title}' already exists. Skipping upload.")
+        return None
 
     request_body = {
         'snippet': {
@@ -43,8 +59,8 @@ def upload_video(video_file_path, title, description):
             status, response = request.next_chunk()
             if response is not None:
                 print("Video uploaded successfully!")
+                return response['id']  # Return the YouTube video ID
         except googleapiclient.errors.HttpError as e:
             print(f"An HTTP error {e.resp.status} occurred: {e.content}")
             break
-
-    return response 
+    return None 
