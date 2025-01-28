@@ -114,9 +114,9 @@ def main():
     for meeting_id, topic in meetings_to_process:
         print(f"Processing meeting {meeting_id}: {topic}")
         try:
+            # Only add to mapping AFTER successful transcript post
             transcript.post_zoom_transcript_to_discourse(meeting_id)
-            # Update mapping with the new meeting ID
-            mapping[meeting_id] = "DISCOURSE_TOPIC_ID"  # Replace with actual topic ID if available
+            mapping[meeting_id] = mapping.get(meeting_id, "DISCOURSE_TOPIC_ID")
         except Exception as e:
             print(f"Error processing meeting {meeting_id}: {e}")
 
