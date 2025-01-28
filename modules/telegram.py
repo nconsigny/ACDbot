@@ -13,9 +13,6 @@ DISCOURSE_BASE_URL = os.environ.get("DISCOURSE_BASE_URL")
 def send_message(text: str):
     """
     Sends a message to a Telegram channel or group.
-    Expects environment variables:
-      - TELEGRAM_BOT_TOKEN
-      - TELEGRAM_CHAT_ID
     """
     token = os.environ["TELEGRAM_BOT_TOKEN"]
     chat_id = os.environ["TELEGRAM_CHAT_ID"]

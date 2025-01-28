@@ -12,17 +12,6 @@ def create_event(summary: str, start_dt, duration_minutes: int, calendar_id: str
     """
     Creates a Google Calendar event using the Google Calendar API.
     Handles both datetime objects and ISO format strings for start_dt.
-
-    Prerequisites:
-    - Environment variable GCAL_SERVICE_ACCOUNT_KEY (JSON string of service account credentials).
-      In a production environment, consider using the official 'google-api-python-client' library.
-
-    :param summary: Title/summary of the event
-    :param start_dt: Start time of the event (datetime object or ISO format string)
-    :param duration_minutes: Event duration in minutes
-    :param calendar_id: ID of the Google Calendar
-    :param description: Optional text description
-    :return: A link (str) to the newly created event
     """
 
     # Convert start_dt to datetime object if it's a string
