@@ -83,46 +83,49 @@ def handle_github_issue(issue_number: int, repo_name: str):
     try:
         start_time, duration = parse_issue_for_time(issue_body)
         join_url, zoom_id = zoom.create_meeting(
-            topic=f"Issue {issue.number}: {issue_title}",
-            start_time=start_time,
+            topic=issue_title,
+            start_time=start_time.isoformat(),
             duration=duration
         )
-        issue.create_comment(f"Zoom meeting created: {join_url}\nZoom Meeting ID: {zoom_id}")
-    except ValueError:
+        print(f"Created Zoom meeting: {join_url}")
+        
+        # Post success comment immediately
         issue.create_comment(
-            "Meeting couldn't be created due to format error. "
-            "Couldn't extract date/time and duration. Expected date/time in UTC like:\n\n"
-            "  [Jan 16, 2025, 14:00 UTC](https://savvytime.com/converter/utc/jan-16-2025/2pm)\n\n"
-            "Please run the script manually to schedule the meeting."
+            f"✅ Zoom meeting created successfully!\n\n"
+            f"- Meeting URL: {join_url}\n"
+            f"- Zoom Meeting ID: `{zoom_id}`"
         )
+
+        # Calendar event creation
+        try:
+            calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
+            event_link = gcal.create_event(
+                summary=issue_title,
+                start_dt=start_time,
+                duration_minutes=duration,
+                calendar_id=calendar_id,
+                description=f"Issue: {issue.html_url}\nZoom: {join_url}"
+            )
+            print(f"Created calendar event: {event_link}")
+        except Exception as cal_error:
+            print(f"Error creating calendar event: {cal_error}")
+            issue.create_comment(f"⚠️ Calendar event creation failed: {cal_error}")
+
+        # Update mapping
+        mapping[str(zoom_id)] = {
+            "discourse_topic_id": topic_id,
+            "youtube_video_id": None
+        }
+
+    except ValueError as ve:
+        print(f"Value error: {ve}")
+        issue.create_comment(f"❌ Format error: {ve}")
     except Exception as e:
-        issue.create_comment(f"Error creating Zoom meeting: {e}")
-
-    # 5. Create Google Calendar event
-    try:
-        start_time, duration = parse_issue_for_time(issue_body)
-        calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
-        event_link = gcal.create_event(
-            summary=issue.title,
-            start_dt=start_time,
-            duration_minutes=duration,
-            calendar_id=calendar_id,
-            description=f"Issue: {issue.html_url}\nZoom: {join_url}"
-        )
-        print(f"Created calendar event: {event_link}")
-    except Exception as e:
-        print(f"Error creating calendar event: {e}")
-
-    # 7. Update the mapping and save it
-    mapping[str(zoom_id)] = {
-        "discourse_topic_id": topic_id,
-        "youtube_video_id": None
-    }
-    save_meeting_topic_mapping(mapping)
-
-    # Commit the updated mapping file to the repository
-    commit_mapping_file(repo)
-    print(f"Mapping updated: Zoom Meeting ID {zoom_id} -> Discourse Topic ID {topic_id}")
+        print(f"Error creating meeting: {e}")
+        issue.create_comment(f"❌ Meeting creation failed: {str(e)}")
+    finally:
+        commit_mapping_file(repo)
+        save_meeting_topic_mapping(mapping)
 
     # Remove any null mappings or failed entries
     mapping = {k: v for k, v in mapping.items() if v is not None}
