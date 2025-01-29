@@ -20,7 +20,7 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     """
     # Load mapping and verify topic ID
     mapping = load_meeting_topic_mapping()
-    entry = mapping.get(meeting_id)
+    entry = mapping.get(str(meeting_id))
     discourse_topic_id = entry.get("discourse_topic_id") if isinstance(entry, dict) else entry
     if not discourse_topic_id:
         raise ValueError(f"No Discourse topic mapping found for meeting ID {meeting_id}")

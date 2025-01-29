@@ -61,13 +61,16 @@ def is_meeting_eligible(meeting_end_time):
     time_difference = now_utc - meeting_end_time
     return time_difference >= timedelta(hours=4)
 
+def validate_meeting_id(meeting_id):
+    return str(meeting_id).strip()
+
 def main():
     parser = argparse.ArgumentParser(description="Poll Zoom for recordings and post transcripts.")
     parser.add_argument("--force_meeting_id", help="Force processing of a specific Zoom meeting ID")
     args = parser.parse_args()
 
     if args.force_meeting_id:
-        meeting_id = args.force_meeting_id
+        meeting_id = str(args.force_meeting_id)
         print(f"Force processing meeting {meeting_id}")
         try:
             # Get actual topic ID from transcript posting
