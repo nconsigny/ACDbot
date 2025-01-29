@@ -21,7 +21,7 @@ def load_meeting_topic_mapping():
 
 def save_meeting_topic_mapping(mapping):
     with open(MAPPING_FILE, "w") as f:
-        json.dump(mapping, f)
+        json.dump(mapping, f, indent=2)
 
 def handle_github_issue(issue_number: int, repo_name: str):
     """
