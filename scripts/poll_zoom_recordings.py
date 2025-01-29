@@ -70,12 +70,13 @@ def main():
         meeting_id = args.force_meeting_id
         print(f"Force processing meeting {meeting_id}")
         try:
-            transcript.post_zoom_transcript_to_discourse(meeting_id)
-            # Update mapping file if necessary
+            # Get actual topic ID from transcript posting
+            topic_id = transcript.post_zoom_transcript_to_discourse(meeting_id)
+            
             mapping = load_meeting_topic_mapping()
             if meeting_id not in mapping:
                 mapping[meeting_id] = {
-                    "discourse_topic_id": "DISCOURSE_TOPIC_ID",
+                    "discourse_topic_id": topic_id,
                     "youtube_video_id": None
                 }
                 save_meeting_topic_mapping(mapping)
@@ -98,9 +99,17 @@ def main():
         if not meeting_id or not end_time_str:
             continue  # Skip if essential data is missing
 
-        if meeting_id in mapping:
-            print(f"Meeting {meeting_id} has already been processed.")
-            continue
+        # Check if already processed (both formats)
+        existing_entry = mapping.get(meeting_id)
+        if existing_entry:
+            # Handle dictionary format
+            if isinstance(existing_entry, dict) and existing_entry.get("discourse_topic_id"):
+                print(f"Meeting {meeting_id} has already been processed.")
+                continue
+            # Handle legacy string format
+            elif isinstance(existing_entry, (int, str)):
+                print(f"Meeting {meeting_id} has already been processed.")
+                continue
 
         # Parse end time
         meeting_end_time = datetime.strptime(end_time_str, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=pytz.utc)
@@ -116,12 +125,14 @@ def main():
     for meeting_id, topic in meetings_to_process:
         print(f"Processing meeting {meeting_id}: {topic}")
         try:
-            # Only add to mapping AFTER successful transcript post
-            transcript.post_zoom_transcript_to_discourse(meeting_id)
-            mapping[meeting_id] = mapping.get(meeting_id, {
-                "discourse_topic_id": "DISCOURSE_TOPIC_ID",
+            # Get actual topic ID from successful transcript post
+            topic_id = transcript.post_zoom_transcript_to_discourse(meeting_id)
+            
+            # Update mapping with new format
+            mapping[meeting_id] = {
+                "discourse_topic_id": topic_id,
                 "youtube_video_id": None
-            })
+            }
         except Exception as e:
             print(f"Error processing meeting {meeting_id}: {e}")
 
