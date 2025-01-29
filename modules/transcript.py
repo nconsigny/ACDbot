@@ -1,6 +1,7 @@
 import os
 import json
 from modules import zoom, discourse
+import requests
 
 MAPPING_FILE = "meeting_topic_mapping.json"
 
@@ -16,7 +17,7 @@ def save_meeting_topic_mapping(mapping):
 
 def post_zoom_transcript_to_discourse(meeting_id: str):
     """
-    Posts the Zoom meeting transcript as a file attachment and summary as text.
+    Posts the Zoom meeting recording link and summary to Discourse.
     """
     # Load mapping and verify topic ID
     mapping = load_meeting_topic_mapping()
@@ -30,26 +31,28 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
         print(f"Transcript already posted for meeting {meeting_id}")
         return discourse_topic_id
 
-    # Get transcript and summary
-    transcript_text = zoom.get_meeting_transcript(meeting_id)
+    # Get recording details from Zoom
+    recording_data = zoom.get_meeting_recording(meeting_id)
+    download_url = recording_data.get('download_url', '')
+    passcode = recording_data.get('passcode', '')
     summary_data = zoom.get_meeting_summary(meeting_id)
     summary = summary_data.get('summary', 'No summary available yet')
 
-    # Upload transcript file
-    file_name = f"transcript-{meeting_id}.txt"
-    transcript_url = discourse.upload_file(transcript_text, file_name)
+    # Get direct Zoom summary URL (doesn't require API)
+    summary_url = f"https://zoom.us/recording/detail?id={meeting_id}"
 
-    # Create post with summary and transcript link
+    # Create post with recording links and summary
     post_content = f"""**Meeting Summary:**
 {summary}
 
-**Full Transcript:**
-[Download {file_name}]({transcript_url})"""
+**Recording Access:**
+- [Download Recording]({download_url}) (Passcode: `{passcode}`)
+- [View Summary in Zoom Portal]({summary_url})"""
 
     discourse.create_post(
         topic_id=discourse_topic_id,
         body=post_content
     )
     
-    print(f"Posted transcript for meeting {meeting_id} to topic {discourse_topic_id}")
+    print(f"Posted recording links for meeting {meeting_id} to topic {discourse_topic_id}")
     return discourse_topic_id
