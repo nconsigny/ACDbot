@@ -27,14 +27,14 @@ jobs:
           pip install -e .
           pip install google-api-python-client
 
-      #- name: Upload Zoom recording to YouTube
-      #  run: |
-      #    python scripts/upload_zoom_recording.py \
-      #      --meeting_id "${{ github.event.inputs.MEETING_ID }}"
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #    ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
-      #    ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
-      #    ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
-      #    YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-      #    GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }} 
+      - name: Upload Zoom recording to YouTube
+        run: |
+          python scripts/upload_zoom_recording.py \
+            --meeting_id "${{ github.event.inputs.MEETING_ID }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
+          ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
+          ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+
