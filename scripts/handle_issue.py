@@ -73,60 +73,59 @@ def handle_github_issue(issue_number: int, repo_name: str):
             category_id=63  
         )
         topic_id = discourse_response.get("topic_id")
-        discourse_url = f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
-        comment_body = f"**Discourse Topic Created**\n\n- ID: `{topic_id}`\n- URL: {discourse_url}"
-
-    # Post consolidated comment
-    issue.create_comment(comment_body)
+        issue.create_comment(f"**Discourse Topic ID:** {topic_id}")
+    
 
     # 4. (Optional) Create Zoom Meeting
     try:
         start_time, duration = parse_issue_for_time(issue_body)
         join_url, zoom_id = zoom.create_meeting(
-            topic=issue_title,
+            topic=f"Issue {issue.number}: {issue_title}",
             start_time=start_time,
             duration=duration
         )
         print(f"Created Zoom meeting: {join_url}")
         
         # Post success comment immediately
+        issue.create_comment(f"Zoom meeting created: {join_url}\nZoom Meeting ID: {zoom_id}")
+    except ValueError:
         issue.create_comment(
-            f"✅ Zoom meeting created successfully!\n\n"
-            f"- Meeting URL: {join_url}\n"
-            f"- Zoom Meeting ID: `{zoom_id}`"
+            "Meeting couldn't be created due to format error. "
+            "Couldn't extract date/time and duration. Expected date/time in UTC like:\n\n"
+            "  [Jan 16, 2025, 14:00 UTC](https://savvytime.com/converter/utc/jan-16-2025/2pm)\n\n"
+            "Please run the script manually to schedule the meeting."
         )
-
-        # Calendar event creation
-        try:
-            start_time, duration = parse_issue_for_time(issue_body)
-            calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
-            event_link = gcal.create_event(
+    except Exception as e:
+        issue.create_comment(f"Error creating Zoom meeting: {e}")
+    # 5 Calendar event creation
+    try:
+        start_time, duration = parse_issue_for_time(issue_body)
+        calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
+        event_link = gcal.create_event(
                 summary=issue.title,
                 start_dt=start_time,
                 duration_minutes=duration,
                 calendar_id=calendar_id,
                 description=f"Issue: {issue.html_url}\nZoom: {join_url}"
             )
-            print(f"Created calendar event: {event_link}")
-        except Exception as cal_error:
-            print(f"Error creating calendar event: {cal_error}")
-            issue.create_comment(f"⚠️ Calendar event creation failed: {cal_error}")
-
-        # Update mapping
-        mapping[str(zoom_id)] = {
+        print(f"Created calendar event: {event_link}")
+    except Exception as e:
+        print(f"Error creating calendar event: {e}")
+    # 6. Post Discourse Topic Link as a Comment
+    try:
+        discourse_url = (
+            f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
+        )
+        issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
+    except Exception as e:
+        issue.create_comment(f"Error posting Discourse topic: {e}")
+    # 7. Update mapping
+    mapping[str(zoom_id)] = {
             "discourse_topic_id": topic_id,
             "youtube_video_id": None
         }
-
-    except ValueError as ve:
-        print(f"Value error: {ve}")
-        issue.create_comment(f"❌ Format error: {ve}")
-    except Exception as e:
-        print(f"Error creating meeting: {e}")
-        issue.create_comment(f"❌ Meeting creation failed: {str(e)}")
-    finally:
-        commit_mapping_file(repo)
-        save_meeting_topic_mapping(mapping)
+    commit_mapping_file(repo)
+    save_meeting_topic_mapping(mapping)
 
     # Remove any null mappings or failed entries
     mapping = {k: v for k, v in mapping.items() if v is not None}

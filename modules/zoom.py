@@ -29,11 +29,11 @@ def create_meeting(topic, start_time, duration):
         "settings": {
             "auto_start_meeting_summary": True,
             "auto_start_ai_companion_questions": True,
-            "join_before_host": False,  
-            "waiting_room": True,  
+            #"join_before_host": False,  
+            #"waiting_room": True,  
             "auto_recording": "cloud",  
             "approval_type": 0,  
-            "alternative_hosts": alternative_hosts,  
+            #"alternative_hosts": alternative_hosts,  
             "recording": {
                 "auto_recording": "cloud",
                 "cloud_recording_download": True,
