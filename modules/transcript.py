@@ -32,7 +32,8 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
 
     # Get transcript and summary
     transcript_text = zoom.get_meeting_transcript(meeting_id)
-    summary = zoom.get_meeting_summary(meeting_id).get('summary', 'No summary available')
+    summary_data = zoom.get_meeting_summary(meeting_id)
+    summary = summary_data.get('summary', 'No summary available yet')
 
     # Upload transcript file
     file_name = f"transcript-{meeting_id}.txt"

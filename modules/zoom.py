@@ -167,26 +167,30 @@ def get_recordings_list():
     data = response.json()
     return data.get("meetings", [])
 
-def get_meeting_summary(meeting_id):
-    """
-    Fetches the AI-generated meeting summary from Zoom
-    Returns: Dict containing summary text and other metadata
-    """
+def get_meeting_summary(meeting_id: str) -> dict:
+    """Get meeting summary from Zoom API with proper error handling"""
     access_token = get_access_token()
     headers = {
         "Authorization": f"Bearer {access_token}",
         "Content-Type": "application/json"
     }
-    url = f"{api_base_url}/meetings/{meeting_id}/recordings/summaries"
     
     try:
-        response = requests.get(url, headers=headers)
+        # Use the meetings/:meetingId/summary endpoint
+        response = requests.get(
+            f"https://api.zoom.us/v2/report/meetings/{meeting_id}/summary",
+            headers=headers
+        )
         response.raise_for_status()
-        return response.json()
+        return response.json().get('summary', {})
+        
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 404:
-            print(f"No AI summary available yet for meeting {meeting_id}")
-        else:
-            print(f"Error fetching summary: {e}")
-        return None
+            print(f"No summary available for meeting {meeting_id}")
+            return {}
+        print(f"Zoom API Error: {e.response.text}")
+        return {}
+    except Exception as e:
+        print(f"Error getting summary: {str(e)}")
+        return {}
 
