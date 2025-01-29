@@ -98,9 +98,10 @@ def handle_github_issue(issue_number: int, repo_name: str):
 
         # Calendar event creation
         try:
+            start_time, duration = parse_issue_for_time(issue_body)
             calendar_id = "c_upaofong8mgrmrkegn7ic7hk5s@group.calendar.google.com"
             event_link = gcal.create_event(
-                summary=issue_title,
+                summary=issue.title,
                 start_dt=start_time,
                 duration_minutes=duration,
                 calendar_id=calendar_id,
