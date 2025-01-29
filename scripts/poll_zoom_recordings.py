@@ -70,20 +70,28 @@ def main():
     args = parser.parse_args()
 
     if args.force_meeting_id:
-        meeting_id = str(args.force_meeting_id)
+        meeting_id = validate_meeting_id(args.force_meeting_id)
         print(f"Force processing meeting {meeting_id}")
         try:
-            # Get actual topic ID from transcript posting
-            topic_id = transcript.post_zoom_transcript_to_discourse(meeting_id)
-            
+            # Get discourse_topic_id BEFORE processing
             mapping = load_meeting_topic_mapping()
-            if meeting_id not in mapping:
-                mapping[meeting_id] = {
-                    "discourse_topic_id": topic_id,
-                    "youtube_video_id": None
-                }
-                save_meeting_topic_mapping(mapping)
-                commit_mapping_file()
+            entry = mapping.get(meeting_id)
+            discourse_topic_id = entry.get("discourse_topic_id") if isinstance(entry, dict) else entry
+            
+            if not discourse_topic_id:
+                raise ValueError(f"No Discourse topic mapping found for meeting {meeting_id}")
+
+            # Process transcript with verified ID
+            transcript.post_zoom_transcript_to_discourse(meeting_id)
+            
+            # Update mapping with proper format
+            mapping[meeting_id] = {
+                "discourse_topic_id": discourse_topic_id,
+                "youtube_video_id": None
+            }
+            save_meeting_topic_mapping(mapping)
+            commit_mapping_file()
+            
         except Exception as e:
             print(f"Error processing meeting {meeting_id}: {e}")
         return

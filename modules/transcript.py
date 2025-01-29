@@ -19,10 +19,16 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     """
     Posts the Zoom meeting recording link and summary to Discourse.
     """
-    # Load mapping and verify topic ID
+    # Load the mapping to find the corresponding Discourse topic ID
     mapping = load_meeting_topic_mapping()
-    entry = mapping.get(str(meeting_id))
-    discourse_topic_id = entry.get("discourse_topic_id") if isinstance(entry, dict) else entry
+    entry = mapping.get(str(meeting_id))  # Ensure string key lookup
+    
+    # Handle both old and new format
+    if isinstance(entry, dict):
+        discourse_topic_id = entry.get("discourse_topic_id")
+    else:  # Legacy string format
+        discourse_topic_id = entry
+        
     if not discourse_topic_id:
         raise ValueError(f"No Discourse topic mapping found for meeting ID {meeting_id}")
 
