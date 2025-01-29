@@ -27,7 +27,8 @@ def create_meeting(topic, start_time, duration):
         "start_time": start_time,  # ISO 8601 format, e.g., "2025-01-18T14:00:00Z"
         "duration": duration,  # Duration in minutes
         "settings": {
-            "auto_start_meeting_summary": True,  
+            "auto_start_meeting_summary": True,
+            "auto_start_ai_companion_questions": True,
             "join_before_host": False,  
             "waiting_room": True,  
             "auto_recording": "cloud",  
@@ -37,12 +38,8 @@ def create_meeting(topic, start_time, duration):
                 "auto_recording": "cloud",
                 "cloud_recording_download": True,
                 "cloud_recording_thumbnails": True,
-                "recording_audio_transcript": True,
-                "ai_recording": True, 
+                "recording_audio_transcript": True, 
             },
-            "meeting_authentication": False,
-            "authentication_option": "",
-            "authentication_domains": ""
         }
     }
     resp = requests.post(f"{api_base_url}/users/me/meetings", 
