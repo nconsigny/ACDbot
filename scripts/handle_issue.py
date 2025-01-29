@@ -240,13 +240,20 @@ def commit_mapping_file(repo):
         email="actions@github.com"
     )
 
+    # Read the LOCAL updated file content
     with open(file_path, "r") as f:
         file_content = f.read()
 
-    # Check if the file exists in the repository
     try:
+        # Get the CURRENT file state from repository
         contents = repo.get_contents(file_path, ref=branch)
-        repo.update_file(
+        
+        # Verify we're updating the correct file
+        if contents.path != file_path:
+            raise ValueError(f"Path mismatch: {contents.path} vs {file_path}")
+
+        # Perform the update
+        update_result = repo.update_file(
             path=contents.path,
             message=commit_message,
             content=file_content,
@@ -254,16 +261,22 @@ def commit_mapping_file(repo):
             branch=branch,
             author=author,
         )
-        print(f"Updated {file_path} in the repository.")
+        print(f"Successfully updated {file_path} in repository. Commit SHA: {update_result['commit'].sha}")
+        
     except Exception as e:
-        repo.create_file(
-            path=file_path,
-            message=commit_message,
-            content=file_content,
-            branch=branch,
-            author=author,
-        )
-        print(f"Created {file_path} in the repository.")
+        # If file doesn't exist, create it
+        if isinstance(e, Exception) and "404" in str(e):
+            print(f"Creating new file {file_path} as it doesn't exist in repo")
+            repo.create_file(
+                path=file_path,
+                message=commit_message,
+                content=file_content,
+                branch=branch,
+                author=author,
+            )
+        else:
+            print(f"Failed to commit mapping file: {str(e)}")
+            raise
 
 def main():
     parser = argparse.ArgumentParser(description="Handle GitHub issue and create/update Discourse topic.")
