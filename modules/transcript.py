@@ -37,12 +37,18 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
         print(f"Transcript already posted for meeting {meeting_id}")
         return discourse_topic_id
 
-    # Get recording details from Zoom
+    # Get recording details to obtain UUID
     recording_data = zoom.get_meeting_recording(meeting_id)
-    summary_data = zoom.get_meeting_summary(meeting_id)
+    meeting_uuid = recording_data.get('uuid', '')
     
-    # Extract summary from dedicated endpoint or fallback to recording data
-    summary = summary_data.get('summary_details', {}).get('summary_content', 
+    # Format UUID by removing slashes (required by API)
+    formatted_uuid = meeting_uuid.replace('/', '').strip() if meeting_uuid else meeting_id
+    
+    # Get summary using formatted UUID
+    summary_data = zoom.get_meeting_summary(formatted_uuid)
+    
+    # Extract summary text
+    summary = summary_data.get('summary_details', {}).get('summary_content',
                 recording_data.get('summary', 'No summary available yet'))
     
     # Extract proper share URL and passcode (new format)
