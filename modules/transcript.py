@@ -41,8 +41,15 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     recording_data = zoom.get_meeting_recording(meeting_id)
     print(f"Recording data for {meeting_id}: {json.dumps(recording_data, indent=2)}")  # Debug
     
+    # Format UUID for API requests
     meeting_uuid = recording_data.get('uuid', '')
-    formatted_uuid = meeting_uuid.replace('/', '').strip() if meeting_uuid else meeting_id
+    if meeting_uuid:
+        # Remove padding and convert to URL-safe base64
+        formatted_uuid = meeting_uuid.rstrip('=').replace('+', '-').replace('/', '_')
+    else:
+        formatted_uuid = meeting_id
+        
+    print(f"Formatted UUID for summary request: {formatted_uuid}")  # Debug
     
     # Get summary using formatted UUID
     summary_data = zoom.get_meeting_summary(formatted_uuid)
