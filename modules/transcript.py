@@ -39,21 +39,33 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
 
     # Get recording details from Zoom
     recording_data = zoom.get_meeting_recording(meeting_id)
-    download_url = recording_data.get('download_url', '')
-    passcode = recording_data.get('passcode', '')
-    summary_data = zoom.get_meeting_summary(meeting_id)
-    summary = summary_data.get('summary', 'No summary available yet')
+    
+    # Extract proper share URL and passcode (new format)
+    share_url = recording_data.get('share_url', '')
+    passcode = recording_data.get('password', '')  # Field name changed to 'password'
+    
+    # Get transcript download URL from recording files
+    transcript_url = next(
+        (f['download_url'] for f in recording_data.get('recording_files', [])
+         if f['file_type'] == 'TRANSCRIPT'),
+        None
+    )
 
-    # Get direct Zoom summary URL (doesn't require API)
-    summary_url = f"https://zoom.us/recording/detail?id={meeting_id}"
-
-    # Create post with recording links and summary
+    # Get summary text and proper summary URL
+    summary = recording_data.get('summary', 'No summary available yet')
+    summary_url = f"https://us06web.zoom.us/rec/share/{recording_data.get('uuid', '')}" 
+    
+    # Build post content
     post_content = f"""**Meeting Summary:**
 {summary}
 
 **Recording Access:**
-- [Download Recording]({download_url}) (Passcode: `{passcode}`)
-- [View Summary in Zoom Portal]({summary_url})"""
+- [Join Recording Session]({share_url}) (Passcode: `{passcode}`)
+- [View Summary]({summary_url})"""
+
+    # Add transcript link if available
+    if transcript_url:
+        post_content += f"\n- [Download Transcript]({transcript_url})"
 
     discourse.create_post(
         topic_id=discourse_topic_id,
