@@ -39,10 +39,15 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
 
     # Get recording details from Zoom
     recording_data = zoom.get_meeting_recording(meeting_id)
+    summary_data = zoom.get_meeting_summary(meeting_id)
+    
+    # Extract summary from dedicated endpoint or fallback to recording data
+    summary = summary_data.get('summary_details', {}).get('summary_content', 
+                recording_data.get('summary', 'No summary available yet'))
     
     # Extract proper share URL and passcode (new format)
     share_url = recording_data.get('share_url', '')
-    passcode = recording_data.get('password', '')  # Field name changed to 'password'
+    passcode = recording_data.get('password', '')
     
     # Get transcript download URL from recording files
     transcript_url = next(
@@ -51,17 +56,12 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
         None
     )
 
-    # Get summary text and proper summary URL
-    summary = recording_data.get('summary', 'No summary available yet')
-    summary_url = f"https://us06web.zoom.us/rec/share/{recording_data.get('uuid', '')}" 
-    
-    # Build post content
+    # Build post content with actual summary text
     post_content = f"""**Meeting Summary:**
 {summary}
 
 **Recording Access:**
-- [Join Recording Session]({share_url}) (Passcode: `{passcode}`)
-- [View Summary]({summary_url})"""
+- [Join Recording Session]({share_url}) (Passcode: `{passcode}`)"""
 
     # Add transcript link if available
     if transcript_url:

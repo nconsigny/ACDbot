@@ -178,7 +178,7 @@ def get_meeting_summary(meeting_id: str) -> dict:
     try:
         # Use the meetings/:meetingId/summary endpoint
         response = requests.get(
-            f"https://api.zoom.us/v2/report/meetings/{meeting_id}/summary",
+            f"https://api.zoom.us/v2/meetings/{meeting_id}/meeting_summary",
             headers=headers
         )
         response.raise_for_status()
