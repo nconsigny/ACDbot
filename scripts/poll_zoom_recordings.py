@@ -87,6 +87,7 @@ def main():
             # Update mapping with proper format
             mapping[meeting_id] = {
                 "discourse_topic_id": discourse_topic_id,
+                "issue_title": entry.get("issue_title", f"Meeting {meeting_id}"),
                 "youtube_video_id": None
             }
             save_meeting_topic_mapping(mapping)
@@ -142,6 +143,7 @@ def main():
             # Update mapping with new format
             mapping[meeting_id] = {
                 "discourse_topic_id": topic_id,
+                "issue_title": topic,
                 "youtube_video_id": None
             }
         except Exception as e:

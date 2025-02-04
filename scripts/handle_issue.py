@@ -122,10 +122,11 @@ def handle_github_issue(issue_number: int, repo_name: str):
     # 7. Update mapping
     mapping[str(zoom_id)] = {
         "discourse_topic_id": topic_id,
-        "youtube_video_id": None  # Placeholder for future use
+        "issue_title": issue.title,
+        "youtube_video_id": None
     }
     save_meeting_topic_mapping(mapping)
-    commit_mapping_file(repo)
+    commit_mapping_file()
     print(f"Mapping updated: Zoom Meeting ID {zoom_id} -> Discourse Topic ID {topic_id}")
     
 
@@ -232,7 +233,7 @@ def parse_issue_for_time(issue_body: str):
 
     return start_time_utc, duration_minutes
 
-def commit_mapping_file(repo):
+def commit_mapping_file():
     file_path = MAPPING_FILE
     commit_message = "Update meeting-topic mapping"
     branch = os.environ.get("GITHUB_REF_NAME", "main")
