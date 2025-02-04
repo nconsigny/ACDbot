@@ -11,11 +11,8 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from modules.zoom import (
-    get_meeting_recording,
-    get_access_token,
-    get_meeting_summary 
-)
+from modules import zoom, transcript
+from github import Github, InputGitAuthor
 from google.auth.transport.requests import Request
 import json
 import subprocess
