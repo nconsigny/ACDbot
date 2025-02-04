@@ -18,6 +18,7 @@ from modules.zoom import (
 )
 from google.auth.transport.requests import Request
 import json
+import subprocess
 
 # Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -148,6 +149,29 @@ def load_meeting_topic_mapping():
 def save_meeting_topic_mapping(mapping):
     with open(MAPPING_FILE, "w") as f:
         json.dump(mapping, f, indent=2)
+
+def commit_mapping_file():
+    """Commit and push changes to the mapping file"""
+    try:
+        # Configure git user (required in CI)
+        subprocess.run(
+            ["git", "config", "--global", "user.email", "actions@github.com"],
+            check=True
+        )
+        subprocess.run(
+            ["git", "config", "--global", "user.name", "GitHub Actions"],
+            check=True
+        )
+        
+        # Commit and push
+        subprocess.run(["git", "add", MAPPING_FILE], check=True)
+        subprocess.run(
+            ["git", "commit", "-m", f"Update YouTube video mapping"],
+            check=True
+        )
+        subprocess.run(["git", "push"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to commit mapping file: {e}")
 
 if __name__ == "__main__":
     main() 
