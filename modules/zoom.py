@@ -1,6 +1,7 @@
 import requests
 import os
 from datetime import datetime, timedelta
+import json
 
 account_id=os.environ["ZOOM_ACCOUNT_ID"]
 client_id=os.environ["ZOOM_CLIENT_ID"]
@@ -168,33 +169,35 @@ def get_recordings_list():
     return data.get("meetings", [])
 
 def get_meeting_summary(meeting_uuid: str) -> dict:
-    """Get AI meeting summary with proper UUID encoding"""
+    """Temporary workaround for summary endpoint"""
     try:
+        # First try with server-to-server token
         access_token = get_access_token()
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
-        }
+        headers = {"Authorization": f"Bearer {access_token}"}
+        encoded_uuid = requests.utils.quote(meeting_uuid, safe='')
         
-        # 1. Remove padding and convert to URL-safe base64
-        formatted_uuid = meeting_uuid.rstrip('=').replace('+', '-').replace('/', '_')
-        
-        # 2. Double encode if starts with _ (original /) or contains __ (original //)
-        if formatted_uuid.startswith('_') or '__' in formatted_uuid:
-            formatted_uuid = requests.utils.quote(formatted_uuid, safe='')  # Double encode
+        print(f"Attempting summary with UUID: {encoded_uuid}")  # Debug
         
         response = requests.get(
-            f"{api_base_url}/meetings/{formatted_uuid}/meeting_summary",
+            f"https://api.zoom.us/v2/meetings/{encoded_uuid}/meeting_summary",
             headers=headers
         )
         
+        print(f"API Response: {response.status_code}")  # Debug
+        
+        if response.status_code == 404:
+            print("Zoom API: Summary not found")
+            return {}
+            
         response.raise_for_status()
-        return response.json()
-    
-    except requests.exceptions.HTTPError as e:
-        print(f"Zoom Summary API Error ({formatted_uuid}): {e.response.status_code} {e.response.text}")
+        summary = response.json()
+        print(f"Raw summary data: {json.dumps(summary, indent=2)}")  # Debug
+        return summary
+        
+    except requests.HTTPError as e:
+        print(f"Zoom API Error ({e.response.status_code}): {e.response.text}")
         return {}
     except Exception as e:
-        print(f"General error getting summary: {str(e)}")
+        print(f"General error: {str(e)}")
         return {}
 
