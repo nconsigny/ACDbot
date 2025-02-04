@@ -13,10 +13,14 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from modules.zoom import get_meeting_recording
 from google.auth.transport.requests import Request
+import json
 
 # Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 CLIENT_SECRETS_FILE = "client_secrets.json"
+
+# Add these functions at the top of the file
+MAPPING_FILE = "meeting_topic_mapping.json"
 
 def get_authenticated_service():
     # Get credentials from environment variables
@@ -121,6 +125,16 @@ def main():
     args = parser.parse_args()
     
     upload_recording(args.meeting_id)
+
+def load_meeting_topic_mapping():
+    if os.path.exists(MAPPING_FILE):
+        with open(MAPPING_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_meeting_topic_mapping(mapping):
+    with open(MAPPING_FILE, "w") as f:
+        json.dump(mapping, f, indent=2)
 
 if __name__ == "__main__":
     main() 
