@@ -47,13 +47,23 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     summary_data = zoom.get_meeting_summary(meeting_uuid=meeting_uuid)
     print(f"Summary data for meeting {meeting_id}: {json.dumps(summary_data, indent=2)}")
     
-    # Extract the first summary detail
-    summary_content = ""
-    if summary_data.get("summary_details"):
-        first_detail = summary_data["summary_details"][0]  # Access first list element
-        summary_content = first_detail.get("summary", "")
-    
-    final_summary = summary_data.get("summary_overview", "") + "\n\n" + summary_content
+    # Process summary data
+    if summary_data:
+        # Extract detailed summaries
+        summary_content = ""
+        if summary_data.get("summary_details"):
+            summaries = [detail.get("summary", "") for detail in summary_data["summary_details"]]
+            summary_content = "\n\n".join(summaries)
+        
+        # Format next steps
+        next_steps = ""
+        if summary_data.get("next_steps"):
+            steps = [f"- {step}" for step in summary_data["next_steps"]]
+            next_steps = "\n\n**Next Steps:**\n" + "\n".join(steps)
+        
+        final_summary = f"{summary_content}{next_steps}"
+    else:
+        final_summary = "No summary available yet"
     print(f"Final summary text: {final_summary}")
     
     # Extract proper share URL and passcode (new format)
