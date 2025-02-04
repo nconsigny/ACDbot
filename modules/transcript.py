@@ -54,7 +54,7 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     print(f"Formatted UUID for summary request: {formatted_uuid}")  # Debug
     
     # Get summary using formatted UUID
-    summary_data = zoom.get_meeting_summary(formatted_uuid)
+    summary_data = zoom.get_meeting_summary(meeting_id=str(meeting_id))
     print(f"Summary data for {formatted_uuid}: {json.dumps(summary_data, indent=2)}")  # Debug
     
     # Extract summary text
