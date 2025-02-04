@@ -11,7 +11,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from modules.zoom import get_meeting_recording
+from modules.zoom import get_meeting_recording, get_access_token
 from google.auth.transport.requests import Request
 import json
 
@@ -57,7 +57,7 @@ def download_zoom_recording(meeting_id):
             temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
             
             headers = {
-                "Authorization": f"Bearer {zoom.get_access_token()}", 
+                "Authorization": f"Bearer {get_access_token()}",
                 "Content-Type": "application/json"
             }
             
