@@ -168,7 +168,7 @@ def get_recordings_list():
     return data.get("meetings", [])
 
 def get_meeting_summary(meeting_id: str) -> dict:
-    """Get AI meeting summary using OAuth"""
+    """Get AI meeting summary using numeric meeting ID"""
     try:
         access_token = get_access_token()
         headers = {
@@ -176,21 +176,23 @@ def get_meeting_summary(meeting_id: str) -> dict:
             "Content-Type": "application/json"
         }
         
+        # Use numeric meeting ID from recording data
         response = requests.get(
             f"{api_base_url}/meetings/{meeting_id}/meeting_summary",
             headers=headers
         )
         
         if response.status_code == 404:
+            print(f"No summary available for meeting {meeting_id}")
             return {}
             
         response.raise_for_status()
         return response.json()
     
     except requests.exceptions.HTTPError as e:
-        print(f"Zoom Summary API Error: {e.response.text}")
+        print(f"Zoom Summary API Error ({meeting_id}): {e.response.status_code} {e.response.text}")
         return {}
     except Exception as e:
-        print(f"Error getting summary: {str(e)}")
+        print(f"General error getting summary: {str(e)}")
         return {}
 

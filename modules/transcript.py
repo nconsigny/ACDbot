@@ -39,28 +39,18 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
         print(f"Transcript already posted for meeting {meeting_id}")
         return discourse_topic_id
 
-    # Get recording details to obtain UUID
+    # Get recording details
     recording_data = zoom.get_meeting_recording(meeting_id)
-    print(f"Recording data for {meeting_id}: {json.dumps(recording_data, indent=2)}")  # Debug
+    print(f"Recording data for {meeting_id}: {json.dumps(recording_data, indent=2)}")
     
-    # Format UUID for API requests
-    meeting_uuid = recording_data.get('uuid', '')
-    if meeting_uuid:
-        # Remove padding and convert to URL-safe base64
-        formatted_uuid = meeting_uuid.rstrip('=').replace('+', '-').replace('/', '_')
-    else:
-        formatted_uuid = meeting_id
-        
-    print(f"Formatted UUID for summary request: {formatted_uuid}")  # Debug
-    
-    # Get summary using formatted UUID
+    # Get summary using numeric meeting ID
     summary_data = zoom.get_meeting_summary(meeting_id=str(meeting_id))
-    print(f"Summary data for {formatted_uuid}: {json.dumps(summary_data, indent=2)}")  # Debug
+    print(f"Summary data for meeting {meeting_id}: {json.dumps(summary_data, indent=2)}")
     
     # Extract summary text
     summary = summary_data.get('summary_details', {}).get('summary_content',
                 recording_data.get('summary', 'No summary available yet'))
-    print(f"Final summary text: {summary}")  # Debug
+    print(f"Final summary text: {summary}")
     
     # Extract proper share URL and passcode (new format)
     share_url = recording_data.get('share_url', '')
