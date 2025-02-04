@@ -26,6 +26,8 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     # Handle both old and new format
     if isinstance(entry, dict):
         discourse_topic_id = entry.get("discourse_topic_id")
+        # Add fallback for legacy entries without issue_title
+        meeting_topic = entry.get("issue_title", f"Meeting {meeting_id}")  
     else:  # Legacy string format
         discourse_topic_id = entry
         

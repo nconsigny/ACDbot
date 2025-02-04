@@ -12,7 +12,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from modules import zoom, transcript
-from github import Github, InputGitAuthor
+from github import Github
 from google.auth.transport.requests import Request
 import json
 import subprocess
@@ -79,18 +79,15 @@ def download_zoom_recording(meeting_id):
 
 def upload_recording(meeting_id):
     youtube = get_authenticated_service()
-    
-    # Replace zoom.get_meeting() with proper data source
     mapping = load_meeting_topic_mapping()
-    meeting_data = mapping.get(meeting_id, {})
     
-    # Get meeting title from mapping or default
-    video_title = meeting_data.get("topic", f"Meeting {meeting_id}")
-    
-    # If you need additional meeting info, use existing functions:
-    recording_info = get_meeting_recording(meeting_id)
-    # Or: meeting_summary = get_meeting_summary(meeting_id)
-    
+    # Use stored issue title from mapping
+    video_title = mapping.get(meeting_id, {}).get("issue_title", f"Meeting {meeting_id}")
+    video_description = (
+        f"Recording of {video_title}\n\n"
+        f"Original Zoom Meeting ID: {meeting_id}"
+    )
+
     if video_exists(youtube, meeting_id):
         print(f"YouTube video already exists for meeting {meeting_id}")
         return
@@ -101,8 +98,8 @@ def upload_recording(meeting_id):
         return
 
     try:
-        title = f"Ethereum Protocol Call - {video_title}"
-        description = f"Recording of Ethereum protocol call meeting {meeting_id}"
+        title = video_title
+        description = video_description
 
         request_body = {
             'snippet': {
