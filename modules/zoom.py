@@ -167,8 +167,8 @@ def get_recordings_list():
     data = response.json()
     return data.get("meetings", [])
 
-def get_meeting_summary(meeting_id: str) -> dict:
-    """Get AI meeting summary using numeric meeting ID"""
+def get_meeting_summary(meeting_uuid: str) -> dict:
+    """Get AI meeting summary with proper UUID encoding"""
     try:
         access_token = get_access_token()
         headers = {
@@ -176,21 +176,23 @@ def get_meeting_summary(meeting_id: str) -> dict:
             "Content-Type": "application/json"
         }
         
-        # Use numeric meeting ID from recording data
+        # 1. Remove padding and convert to URL-safe base64
+        formatted_uuid = meeting_uuid.rstrip('=').replace('+', '-').replace('/', '_')
+        
+        # 2. Double encode if starts with _ (original /) or contains __ (original //)
+        if formatted_uuid.startswith('_') or '__' in formatted_uuid:
+            formatted_uuid = requests.utils.quote(formatted_uuid, safe='')  # Double encode
+        
         response = requests.get(
-            f"{api_base_url}/meetings/{meeting_id}/meeting_summary",
+            f"{api_base_url}/meetings/{formatted_uuid}/meeting_summary",
             headers=headers
         )
         
-        if response.status_code == 404:
-            print(f"No summary available for meeting {meeting_id}")
-            return {}
-            
         response.raise_for_status()
         return response.json()
     
     except requests.exceptions.HTTPError as e:
-        print(f"Zoom Summary API Error ({meeting_id}): {e.response.status_code} {e.response.text}")
+        print(f"Zoom Summary API Error ({formatted_uuid}): {e.response.status_code} {e.response.text}")
         return {}
     except Exception as e:
         print(f"General error getting summary: {str(e)}")

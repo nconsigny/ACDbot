@@ -41,10 +41,10 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
 
     # Get recording details
     recording_data = zoom.get_meeting_recording(meeting_id)
-    print(f"Recording data for {meeting_id}: {json.dumps(recording_data, indent=2)}")
+    meeting_uuid = recording_data.get('uuid', '')
     
-    # Get summary using numeric meeting ID
-    summary_data = zoom.get_meeting_summary(meeting_id=str(meeting_id))
+    # Get summary using properly encoded UUID
+    summary_data = zoom.get_meeting_summary(meeting_uuid=meeting_uuid)
     print(f"Summary data for meeting {meeting_id}: {json.dumps(summary_data, indent=2)}")
     
     # Extract summary text
