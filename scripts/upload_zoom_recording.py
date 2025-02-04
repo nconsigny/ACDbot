@@ -12,15 +12,28 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from modules.zoom import get_meeting_recording
+from google.auth.transport.requests import Request
 
 # Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 CLIENT_SECRETS_FILE = "client_secrets.json"
 
 def get_authenticated_service():
-    flow = InstalledAppFlow.from_client_secrets_file(CLIENT_SECRETS_FILE, SCOPES)
-    credentials = flow.run_local_server(port=8080)
-    return build('youtube', 'v3', credentials=credentials)
+    # Get credentials from environment variables
+    creds = Credentials(
+        token=None,
+        refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],
+        client_id=os.environ["GOOGLE_CLIENT_ID"],
+        client_secret=os.environ["GOOGLE_CLIENT_SECRET"],
+        token_uri="https://oauth2.googleapis.com/token",
+        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+    )
+    
+    # Refresh if needed
+    if not creds.valid:
+        creds.refresh(Request())
+        
+    return build("youtube", "v3", credentials=creds)
 
 def video_exists(youtube, meeting_id):
     """Check if video for this meeting ID already exists in mapping"""
