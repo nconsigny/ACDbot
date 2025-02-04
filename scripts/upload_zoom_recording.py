@@ -11,7 +11,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from modules import zoom, transcript
+from modules import zoom, transcript, discourse
 from github import Github
 from google.auth.transport.requests import Request
 import json
@@ -126,6 +126,15 @@ def upload_recording(meeting_id):
         commit_mapping_file()
         
         print(f"Uploaded YouTube video: https://youtu.be/{response['id']}")
+
+        # Post to Discourse
+        discourse_topic_id = mapping[meeting_id].get("discourse_topic_id")
+        if discourse_topic_id:
+            youtube_link = f"https://youtu.be/{response['id']}"
+            discourse.create_post(
+                topic_id=discourse_topic_id,
+                body=f"YouTube recording available: {youtube_link}"
+            )
 
     except HttpError as e:
         print(f"YouTube API error: {e}")
