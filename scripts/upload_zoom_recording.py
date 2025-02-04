@@ -16,6 +16,11 @@ from github import Github, InputGitAuthor
 from google.auth.transport.requests import Request
 import json
 import subprocess
+from modules.zoom import (
+    get_meeting_recording,
+    get_access_token,
+    get_meeting_summary  # If needed
+)
 
 # Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
