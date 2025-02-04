@@ -241,6 +241,12 @@ def commit_mapping_file():
         name="GitHub Actions Bot",
         email="actions@github.com"
     )
+    
+    # Add repo initialization
+    token = os.environ["GITHUB_TOKEN"]
+    repo_name = os.environ["GITHUB_REPOSITORY"]
+    g = Github(token)
+    repo = g.get_repo(repo_name)
 
     # Read the LOCAL updated file content
     with open(file_path, "r") as f:
