@@ -75,7 +75,15 @@ def handle_github_issue(issue_number: int, repo_name: str):
         topic_id = discourse_response.get("topic_id")
         issue.create_comment(f"**Discourse Topic ID:** {topic_id}")
     
-
+    # Add Telegram notification here
+    try:
+        import modules.telegram as telegram
+        discourse_url = f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
+        telegram_message = f"New Discourse Topic: {issue_title}\n\n{issue_body}\n{discourse_url}"
+        telegram.send_message(telegram_message)
+    except Exception as e:
+        print(f"Telegram notification failed: {e}")
+    
     # 4. (Optional) Create Zoom Meeting
     try:
         start_time, duration = parse_issue_for_time(issue_body)
@@ -113,15 +121,8 @@ def handle_github_issue(issue_number: int, repo_name: str):
         print(f"Error creating calendar event: {e}")
     # 6. Post Discourse Topic Link as a Comment
     try:
-        discourse_url = (
-            f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
-        )
+        discourse_url = f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
         issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
-        
-        # Also notify via Telegram
-        import modules.telegram as telegram
-        telegram.send_message(f"Discourse topic created: {discourse_url}")
-        print("Telegram notification sent for Discourse topic update.")
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
     # 7. Update mapping
