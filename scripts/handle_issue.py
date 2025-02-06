@@ -117,6 +117,11 @@ def handle_github_issue(issue_number: int, repo_name: str):
             f"{os.environ.get('DISCOURSE_BASE_URL', 'https://ethereum-magicians.org')}/t/{topic_id}"
         )
         issue.create_comment(f"Discourse topic created/updated: {discourse_url}")
+        
+        # Also notify via Telegram
+        import modules.telegram as telegram
+        telegram.send_message(f"Discourse topic created: {discourse_url}")
+        print("Telegram notification sent for Discourse topic update.")
     except Exception as e:
         issue.create_comment(f"Error posting Discourse topic: {e}")
     # 7. Update mapping

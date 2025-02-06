@@ -94,4 +94,13 @@ def post_zoom_transcript_to_discourse(meeting_id: str):
     )
     
     print(f"Posted recording links for meeting {meeting_id} to topic {discourse_topic_id}")
+
+    # Now, send the same content to Telegram
+    try:
+        import modules.telegram as telegram  # Ensure telegram module is available
+        telegram.send_message(post_content)
+        print("Message sent to Telegram successfully.")
+    except Exception as e:
+        print(f"Error sending message to Telegram: {e}")
+    
     return discourse_topic_id
