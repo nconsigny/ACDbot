@@ -45,16 +45,6 @@ jobs:
           DISCOURSE_API_KEY: ${{ secrets.DISCOURSE_API_KEY }}
           DISCOURSE_API_USERNAME: ${{ secrets.DISCOURSE_API_USERNAME }}
           DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
-
-
-      #- name: Upload Zoom recordings to YouTube
-      #  run: |
-      #    python scripts/upload_zoom_recording.py \
-      #      --meeting_id "${{ github.event.inputs.FORCE_MEETING_ID }}"
-      #  env:
-      #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #    ZOOM_CLIENT_ID: ${{ secrets.ZOOM_CLIENT_ID }}
-      #    ZOOM_CLIENT_SECRET: ${{ secrets.ZOOM_CLIENT_SECRET }}
-      #    ZOOM_ACCOUNT_ID: ${{ secrets.ZOOM_ACCOUNT_ID }}
-      #    YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
-      #    GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS }} 
+          # Telegram credentials
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}

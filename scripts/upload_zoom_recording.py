@@ -135,6 +135,14 @@ def upload_recording(meeting_id):
                 topic_id=discourse_topic_id,
                 body=f"YouTube recording available: {youtube_link}"
             )
+        
+        # Now, send the same message via Telegram
+        try:
+            import modules.telegram as telegram
+            telegram.send_message(f"YouTube recording available: {youtube_link}")
+            print("Telegram notification sent for YouTube upload.")
+        except Exception as e:
+            print(f"Error sending Telegram message for YouTube upload: {e}")
 
     except HttpError as e:
         print(f"YouTube API error: {e}")
