@@ -3,3 +3,4 @@ venv/
 
 .pyc
 __pycache__/
+farcaster_add_key.py
