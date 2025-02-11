@@ -12,6 +12,8 @@ on:
 jobs:
   youtube-upload:
     runs-on: ubuntu-latest
+    env:
+      refresh_failed: 'false'
     steps:
       - name: Check out code
         uses: actions/checkout@v3
@@ -27,6 +29,23 @@ jobs:
           pip install -e .
           pip install google-api-python-client google-auth-oauthlib google-auth httplib2
           pip install -r requirements.txt
+
+      - name: Refresh YouTube Token
+        id: refresh-token
+        run: |
+          python scripts/refresh_youtube_token.py || echo "refresh_failed=true" >> $GITHUB_ENV
+
+      - name: Notify Token Expiry
+        if: env.refresh_failed == 'true'
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: "YouTube Token Refresh Required",
+              body: "Manual OAuth reauthentication needed for YouTube uploads"
+            })
 
       - name: Upload Zoom recording to YouTube
         run: |
@@ -46,6 +65,7 @@ jobs:
           DISCOURSE_BASE_URL: ${{ vars.DISCOURSE_BASE_URL }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+
 permissions:
   contents: write
 

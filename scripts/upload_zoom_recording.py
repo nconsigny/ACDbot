@@ -21,6 +21,7 @@ from modules.zoom import (
     get_access_token,
     get_meeting_summary  # If needed
 )
+from google.oauth2 import service_account
 
 # Reuse existing zoom module functions
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -30,7 +31,7 @@ CLIENT_SECRETS_FILE = "client_secrets.json"
 MAPPING_FILE = "meeting_topic_mapping.json"
 
 def get_authenticated_service():
-    # Get credentials from environment variables
+    # Initialize credentials from environment variables
     creds = Credentials(
         token=None,
         refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],
@@ -40,10 +41,7 @@ def get_authenticated_service():
         scopes=["https://www.googleapis.com/auth/youtube.upload"]
     )
     
-    # Refresh if needed
-    if not creds.valid:
-        creds.refresh(Request())
-        
+    # Token already refreshed at workflow start
     return build("youtube", "v3", credentials=creds)
 
 def video_exists(youtube, meeting_id):
@@ -190,4 +188,4 @@ def commit_mapping_file():
         print(f"Failed to commit mapping file: {e}")
 
 if __name__ == "__main__":
-    main() 
+    main()
