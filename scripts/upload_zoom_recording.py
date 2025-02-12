@@ -123,21 +123,26 @@ def upload_recording(meeting_id):
         save_meeting_topic_mapping(mapping)
         commit_mapping_file()
         
-        print(f"Uploaded YouTube video: https://youtu.be/{response['id']}")
+        youtube_link = f"https://youtu.be/{response['id']}"
+        print(f"Uploaded YouTube video: {youtube_link}")
 
-        # Post to Discourse
+        # Post to Discourse (if applicable)
         discourse_topic_id = mapping[meeting_id].get("discourse_topic_id")
         if discourse_topic_id:
-            youtube_link = f"https://youtu.be/{response['id']}"
             discourse.create_post(
                 topic_id=discourse_topic_id,
                 body=f"YouTube recording available: {youtube_link}"
             )
-        
-        # Now, send the same message via Telegram
+
+        # Send Telegram notification similar to handle_issue
         try:
             import modules.telegram as telegram
-            telegram.send_message(f"YouTube recording available: {youtube_link}")
+            telegram_message = (
+                f"YouTube Upload Successful!\n\n"
+                f"Title: {video_title}\n"
+                f"URL: {youtube_link}"
+            )
+            telegram.send_message(telegram_message)
             print("Telegram notification sent for YouTube upload.")
         except Exception as e:
             print(f"Error sending Telegram message for YouTube upload: {e}")
