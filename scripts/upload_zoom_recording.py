@@ -47,7 +47,10 @@ def get_authenticated_service():
 def video_exists(youtube, meeting_id):
     """Check if video for this meeting ID already exists in mapping"""
     mapping = load_meeting_topic_mapping()
-    return mapping.get(meeting_id, {}).get("youtube_video_id") is not None
+    video_id = mapping.get(meeting_id, {}).get("youtube_video_id")
+    if video_id is None or str(video_id).lower() in ("none", "null", ""):
+        return False
+    return True
 
 def download_zoom_recording(meeting_id):
     """Download Zoom recording MP4 file to temp location"""
