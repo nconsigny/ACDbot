@@ -4,3 +4,6 @@ venv/
 .pyc
 __pycache__/
 farcaster_add_key.py
+
+# Ignore client_secrets.json
+client_secrets.json

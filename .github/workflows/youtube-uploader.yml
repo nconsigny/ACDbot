@@ -32,20 +32,16 @@ jobs:
 
       - name: Refresh YouTube Token
         id: refresh-token
+        env:
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
-          python scripts/refresh_youtube_token.py || echo "refresh_failed=true" >> $GITHUB_ENV
+            python scripts/refresh_youtube_token.py || echo "refresh_failed=true" >> $GITHUB_ENV
 
-      - name: Notify Token Expiry
+      - name: Token Refresh Failure Log
         if: env.refresh_failed == 'true'
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: "YouTube Token Refresh Required",
-              body: "Manual OAuth reauthentication needed for YouTube uploads"
-            })
+        run: echo "Refresh token update failed. Please refresh manually."
 
       - name: Upload Zoom recording to YouTube
         run: |
@@ -68,4 +64,5 @@ jobs:
 
 permissions:
   contents: write
+  issues: write
 
